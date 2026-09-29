@@ -18,6 +18,13 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'system.users';
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
