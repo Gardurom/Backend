@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [ValidateSet("Preinstalacion", "Instalacion")]
-    [string]$Modo = "Instalacion"
+    [string]$Modo = "Instalacion",
+
+    [ValidateSet("Actual", "PruebaInstalacion")]
+    [string]$Entorno = "Actual"
 )
 
 Set-StrictMode -Version Latest
@@ -11,6 +14,12 @@ $raizProyecto = Split-Path -Parent $PSScriptRoot
 $artisan = Join-Path $raizProyecto "artisan"
 $phpunit = Join-Path $raizProyecto "vendor\phpunit\phpunit\phpunit"
 $configuracion = Join-Path $raizProyecto "phpunit.installation.xml"
+
+$entornoMigracion = "migration"
+$entornoAnterior = [Environment]::GetEnvironmentVariable(
+    "APP_ENV",
+    "Process"
+)
 
 $codigoSalida = 1
 $ubicacionCambiada = $false
@@ -22,14 +31,40 @@ try {
         throw "No se encontro Artisan en: $artisan"
     }
 
+    if ($Entorno -eq "PruebaInstalacion") {
+        foreach ($nombreArchivo in @(
+            ".env.installation",
+            ".env.installation-migration"
+        )) {
+            $rutaEntorno = Join-Path $raizProyecto $nombreArchivo
+
+            if (-not (Test-Path -LiteralPath $rutaEntorno -PathType Leaf)) {
+                throw "Falta el archivo de entorno: $nombreArchivo"
+            }
+        }
+
+        $cacheConfiguracion = Join-Path $raizProyecto "bootstrap\cache\config.php"
+
+        if (Test-Path -LiteralPath $cacheConfiguracion) {
+            throw "Existe configuracion cacheada. Debemos revisarla antes de seleccionar el entorno de pruebas."
+        }
+
+        if ([Environment]::GetEnvironmentVariable("APP_CONFIG_CACHE", "Process")) {
+            throw "Existe una ruta personalizada APP_CONFIG_CACHE. Debemos revisarla antes de ejecutar las pruebas."
+        }
+
+        $entornoMigracion = "installation-migration"
+    }
+
     Push-Location -LiteralPath $raizProyecto
     $ubicacionCambiada = $true
 
     Write-Host "SIGA - Bateria de pruebas"
     Write-Host "Modo: $Modo"
+    Write-Host "Entorno: $Entorno"
     Write-Host "Etapa: comprobacion del estado de instalacion."
 
-    & $php.Source $artisan siga:check-installation --env=migration
+    & $php.Source $artisan siga:check-installation "--env=$entornoMigracion"
     $codigoSalida = $LASTEXITCODE
 
     if ($codigoSalida -ne 0) {
@@ -42,6 +77,14 @@ try {
 
         if (-not (Test-Path -LiteralPath $configuracion -PathType Leaf)) {
             throw "Falta la configuracion: $configuracion"
+        }
+
+        if ($Entorno -eq "PruebaInstalacion") {
+            [Environment]::SetEnvironmentVariable(
+                "APP_ENV",
+                "installation",
+                "Process"
+            )
         }
 
         Write-Host "Etapa: pruebas de instalacion con la conexion de aplicacion."
@@ -69,6 +112,12 @@ try {
     Write-Host ("Error: " + $_.Exception.Message)
     $codigoSalida = 1
 } finally {
+    [Environment]::SetEnvironmentVariable(
+        "APP_ENV",
+        $entornoAnterior,
+        "Process"
+    )
+
     if ($ubicacionCambiada) {
         Pop-Location
     }
