@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet("Preinstalacion", "Instalacion")]
+    [ValidateSet("Preinstalacion", "Instalacion", "Funcional", "Completa")]
     [string]$Modo = "Instalacion",
 
     [ValidateSet("Actual", "PruebaInstalacion")]
@@ -13,7 +13,6 @@ $ErrorActionPreference = "Stop"
 $raizProyecto = Split-Path -Parent $PSScriptRoot
 $artisan = Join-Path $raizProyecto "artisan"
 $phpunit = Join-Path $raizProyecto "vendor\phpunit\phpunit\phpunit"
-$configuracion = Join-Path $raizProyecto "phpunit.installation.xml"
 
 $entornoMigracion = "migration"
 $entornoAnterior = [Environment]::GetEnvironmentVariable(
@@ -25,6 +24,13 @@ $codigoSalida = 1
 $ubicacionCambiada = $false
 
 try {
+    if (
+        $Modo -in @("Funcional", "Completa") -and
+        $Entorno -ne "PruebaInstalacion"
+    ) {
+        throw "Los modos Funcional y Completa requieren -Entorno PruebaInstalacion."
+    }
+
     $php = Get-Command php -CommandType Application -ErrorAction Stop
 
     if (-not (Test-Path -LiteralPath $artisan -PathType Leaf)) {
@@ -56,6 +62,36 @@ try {
         $entornoMigracion = "installation-migration"
     }
 
+    $baterias = @()
+
+    if ($Modo -in @("Instalacion", "Completa")) {
+        $baterias += @{
+            Nombre = "Instalacion"
+            Archivo = "phpunit.installation.xml"
+        }
+    }
+
+    if ($Modo -in @("Funcional", "Completa")) {
+        $baterias += @{
+            Nombre = "Funcional"
+            Archivo = "phpunit.functional.xml"
+        }
+    }
+
+    if ($baterias.Count -gt 0) {
+        if (-not (Test-Path -LiteralPath $phpunit -PathType Leaf)) {
+            throw "No se encontro PHPUnit en: $phpunit"
+        }
+
+        foreach ($bateria in $baterias) {
+            $rutaConfiguracion = Join-Path $raizProyecto $bateria.Archivo
+
+            if (-not (Test-Path -LiteralPath $rutaConfiguracion -PathType Leaf)) {
+                throw "Falta la configuracion: $rutaConfiguracion"
+            }
+        }
+    }
+
     Push-Location -LiteralPath $raizProyecto
     $ubicacionCambiada = $true
 
@@ -69,16 +105,10 @@ try {
 
     if ($codigoSalida -ne 0) {
         Write-Host "El diagnostico requiere atencion."
-        Write-Host "Las pruebas de instalacion no se ejecutaron."
-    } elseif ($Modo -eq "Instalacion") {
-        if (-not (Test-Path -LiteralPath $phpunit -PathType Leaf)) {
-            throw "No se encontro PHPUnit en: $phpunit"
-        }
-
-        if (-not (Test-Path -LiteralPath $configuracion -PathType Leaf)) {
-            throw "Falta la configuracion: $configuracion"
-        }
-
+        Write-Host "Las baterias seleccionadas no se ejecutaron."
+    } elseif ($Modo -eq "Preinstalacion") {
+        Write-Host "Resultado: diagnostico de preinstalacion satisfactorio."
+    } else {
         if ($Entorno -eq "PruebaInstalacion") {
             [Environment]::SetEnvironmentVariable(
                 "APP_ENV",
@@ -87,24 +117,31 @@ try {
             )
         }
 
-        Write-Host "Etapa: pruebas de instalacion con la conexion de aplicacion."
+        foreach ($bateria in $baterias) {
+            $rutaConfiguracion = Join-Path $raizProyecto $bateria.Archivo
 
-        & $php.Source $phpunit `
-            --configuration $configuracion `
-            --testdox `
-            --colors=never `
-            --do-not-cache-result `
-            --fail-on-empty-test-suite
+            Write-Host ("Etapa: bateria " + $bateria.Nombre)
 
-        $codigoSalida = $LASTEXITCODE
+            & $php.Source $phpunit `
+                --configuration $rutaConfiguracion `
+                --testdox `
+                --colors=never `
+                --do-not-cache-result `
+                --fail-on-empty-test-suite
+
+            $codigoSalida = $LASTEXITCODE
+
+            if ($codigoSalida -ne 0) {
+                Write-Host ("La bateria " + $bateria.Nombre + " presento incidencias.")
+                break
+            }
+        }
 
         if ($codigoSalida -eq 0) {
-            Write-Host "Resultado: pruebas aprobadas."
+            Write-Host "Resultado: todas las baterias seleccionadas fueron aprobadas."
         } else {
-            Write-Host "Resultado: pruebas con incidencias."
+            Write-Host "Resultado: revision requerida."
         }
-    } else {
-        Write-Host "Resultado: diagnostico de preinstalacion satisfactorio."
     }
 
     Write-Host "Codigo de salida: $codigoSalida"
