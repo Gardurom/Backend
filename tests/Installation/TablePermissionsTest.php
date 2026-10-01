@@ -87,6 +87,16 @@ class TablePermissionsTest extends InstallationTestCase
             ],
         ];
 
+        yield 'system.activities' => [
+            'system.activities',
+            [
+                'SELECT' => true,
+                'INSERT' => true,
+                'UPDATE' => false,
+                'DELETE' => false,
+                'TRUNCATE' => false,
+            ],
+        ];
         $noAccess = [
             'SELECT' => false,
             'INSERT' => false,

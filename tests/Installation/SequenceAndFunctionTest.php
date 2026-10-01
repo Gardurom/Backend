@@ -33,6 +33,7 @@ class SequenceAndFunctionTest extends InstallationTestCase
         yield 'usuarios' => ['system.users_id_seq'];
         yield 'trabajos' => ['system.jobs_id_seq'];
         yield 'trabajos fallidos' => ['system.failed_jobs_id_seq'];
+        yield 'actividades' => ['system.activities_id_actividad_seq'];
     }
 
     public function test_expediente_function_has_expected_security(): void
