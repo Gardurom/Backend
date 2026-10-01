@@ -47,6 +47,19 @@
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
         ],
+        "test:installation": [
+            "@php artisan config:clear --ansi @no_additional_args",
+            "@php artisan test --env=installation tests/Installation"
+        ],
+        "test:functional": [
+            "@php artisan config:clear --ansi @no_additional_args",
+            "@php artisan test --env=installation tests/Functional"
+        ],
+        "test:all": [
+            "@composer test",
+            "@composer test:installation",
+            "@composer test:functional"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
