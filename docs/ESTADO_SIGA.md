@@ -9,7 +9,7 @@
 - Rama principal: `main`
 - Repositorio remoto: `https://github.com/Gardurom/Backend.git`
 - Último commit confirmado:
-  - `afbc4c1 feat: agregar autenticacion con Sanctum y sesiones`
+  - `6be0321 feat: registrar Persona mediante API autenticada`
 - Árbol de trabajo confirmado limpio después del push.
 
 ## 2. Plataforma actual
@@ -89,6 +89,15 @@ Acciones implementadas:
 - `WithdrawPerson`
 - `ReinstatePerson`
 
+API implementada:
+
+- `POST /api/personas`
+  - protegida con `auth:sanctum`
+  - registra una Persona mediante `RegisterPerson`
+  - obtiene `id_usuario` exclusivamente del usuario autenticado
+  - no permite que el cliente controle `id_usuario`
+  - no permite que el cliente sobrescriba `estatus`
+
 Comportamiento confirmado:
 
 - registro transaccional
@@ -167,9 +176,9 @@ Flujo actual:
 
 `CSRF -> login -> sesión Laravel -> auth:sanctum -> API`
 
-El usuario autenticado deberá proporcionar internamente el `id_usuario` para auditoría.
+El usuario autenticado proporciona internamente el `id_usuario` para auditoría.
 
-El cliente no deberá enviar ni controlar manualmente `id_usuario`.
+El cliente no controla `id_usuario`; aunque intente enviarlo en la petición, la auditoría utiliza exclusivamente al usuario autenticado.
 
 ## 8. Pruebas
 
@@ -181,12 +190,12 @@ Resultado:
 
 - Unit + Feature: 2 pruebas / 2 assertions
 - Installation: 22 pruebas / 135 assertions
-- Functional: 58 pruebas / 677 assertions
+- Functional: 67 pruebas / 794 assertions
 
 Total:
 
-- 82 pruebas
-- 814 assertions
+- 91 pruebas
+- 931 assertions
 - 0 fallos
 
 Autenticación funcional validada:
@@ -201,6 +210,18 @@ Autenticación funcional validada:
 `composer audit`:
 
 - sin vulnerabilidades conocidas al momento de esta actualización
+
+Registro de Persona mediante API validado:
+
+- invitado recibe `401` en `POST /api/personas`
+- usuario autenticado puede registrar una Persona y recibe `201`
+- `nombres` es obligatorio
+- los espacios exteriores de `nombres` se normalizan antes de guardar
+- `sexo` rechaza valores fuera de `MASCULINO` y `FEMENINO`
+- `estado_civil` rechaza valores fuera de `SOLTERO` y `CASADO`
+- `fecha_nacimiento` no admite fechas futuras
+- el cliente no puede sobrescribir `estatus`
+- el cliente no puede suplantar `id_usuario` para la auditoría
 
 ## 9. Entornos
 
@@ -254,23 +275,26 @@ No reabrir salvo necesidad técnica o decisión explícita:
 
 ## 12. Próximo bloque
 
-Integrar Persona con la API HTTP protegida por Sanctum.
+Continuar la integración HTTP de Persona mediante API protegida por Sanctum.
 
-Primer objetivo previsto:
+Siguiente objetivo previsto:
 
-`POST /api/personas`
+`GET /api/personas/{id_persona}`
 
 Debe:
 
 - requerir `auth:sanctum`
-- validar la petición
-- obtener `id_usuario` exclusivamente del usuario autenticado
-- ejecutar `RegisterPerson`
-- registrar Persona y auditoría dentro de la misma transacción
-- no aceptar `id_usuario` proporcionado por el cliente
-- contar con pruebas HTTP funcionales antes de implementar la ruta
+- consultar la Persona por `id_persona`
+- devolver `200` cuando la Persona exista
+- devolver `404` cuando la Persona no exista
+- mantener la separación entre controlador HTTP y lógica de dominio
+- contar con pruebas HTTP funcionales antes de completar la implementación
 
-Después se incorporarán de forma controlada las operaciones de consulta, actualización, baja y reingreso.
+Después se incorporarán de forma controlada:
+
+- actualización de Persona
+- baja de Persona
+- reingreso de Persona
 
 ---
 
