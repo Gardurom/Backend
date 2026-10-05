@@ -10,3 +10,6 @@ Route::get('/user', function (Request $request) {
 
 Route::post('/personas', [PersonController::class, 'store'])
     ->middleware('auth:sanctum');
+
+Route::get('/personas/{id_persona}', [PersonController::class, 'show'])
+    ->middleware('auth:sanctum');

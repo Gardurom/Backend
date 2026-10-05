@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Persona\FindPerson;
 use App\Actions\Persona\RegisterPerson;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -46,5 +47,14 @@ class PersonController extends Controller
             $person,
             201
         );
+    }
+
+    public function show(
+        string $idPersona,
+        FindPerson $findPerson
+    ): JsonResponse {
+        $person = $findPerson->execute($idPersona);
+
+        return response()->json($person);
     }
 }
