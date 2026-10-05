@@ -54,5 +54,11 @@ class AuthenticatedUserTest extends HttpFunctionalTestCase
                 'person.nombres',
                 'PERSONA AUTENTICADA SIGA'
             );
+
+        $response
+            ->assertJsonMissingPath('person.curp')
+            ->assertJsonMissingPath('person.rfc')
+            ->assertJsonMissingPath('person.correo_institucional')
+            ->assertJsonMissingPath('person.correo_personal');
     }
 }

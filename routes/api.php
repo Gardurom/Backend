@@ -5,7 +5,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
-    return $request->user()->load('person');
+    return $request->user()->load(
+        'person:id_persona,nombres,apellido_paterno,apellido_materno'
+    );
 })->middleware('auth:sanctum');
 
 Route::post('/personas', [PersonController::class, 'store'])
