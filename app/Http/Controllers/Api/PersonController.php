@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\Persona\FindPerson;
 use App\Actions\Persona\RegisterPerson;
+use App\Actions\Persona\ReinstatePerson;
 use App\Actions\Persona\UpdatePerson;
 use App\Actions\Persona\WithdrawPerson;
 use App\Http\Controllers\Controller;
@@ -103,6 +104,19 @@ class PersonController extends Controller
         WithdrawPerson $withdrawPerson
     ): JsonResponse {
         $person = $withdrawPerson->execute(
+            (int) $request->user()->getAuthIdentifier(),
+            $idPersona
+        );
+
+        return response()->json($person);
+    }
+
+    public function reinstate(
+        Request $request,
+        string $idPersona,
+        ReinstatePerson $reinstatePerson
+    ): JsonResponse {
+        $person = $reinstatePerson->execute(
             (int) $request->user()->getAuthIdentifier(),
             $idPersona
         );

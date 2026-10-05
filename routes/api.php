@@ -19,3 +19,6 @@ Route::patch('/personas/{id_persona}', [PersonController::class, 'update'])
 
 Route::post('/personas/{id_persona}/baja', [PersonController::class, 'withdraw'])
     ->middleware('auth:sanctum');
+
+Route::post('/personas/{id_persona}/reingreso', [PersonController::class, 'reinstate'])
+    ->middleware('auth:sanctum');
