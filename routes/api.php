@@ -13,3 +13,6 @@ Route::post('/personas', [PersonController::class, 'store'])
 
 Route::get('/personas/{id_persona}', [PersonController::class, 'show'])
     ->middleware('auth:sanctum');
+
+Route::patch('/personas/{id_persona}', [PersonController::class, 'update'])
+    ->middleware('auth:sanctum');
