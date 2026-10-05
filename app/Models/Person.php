@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'curp',
@@ -64,5 +65,14 @@ class Person extends Model
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
+    }
+
+    public function user(): HasOne
+    {
+        return $this->hasOne(
+            User::class,
+            'id_persona',
+            'id_persona'
+        );
     }
 }
