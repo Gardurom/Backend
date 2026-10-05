@@ -59,4 +59,29 @@ class LoginTest extends HttpFunctionalTestCase
 
         $this->assertGuest();
     }
+
+    public function test_user_can_login_with_normalized_email(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Usuario Login Normalizado SIGA',
+            'email' => 'login.normalizado@siga.test',
+            'password' => Hash::make('ClaveSegura123!'),
+        ]);
+
+        $csrfToken = 'csrf-token-normalized-login-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader('X-CSRF-TOKEN', $csrfToken)
+            ->postJson('/login', [
+                'email' => ' LOGIN.NORMALIZADO@SIGA.TEST ',
+                'password' => 'ClaveSegura123!',
+            ]);
+
+        $response->assertNoContent();
+
+        $this->assertAuthenticatedAs($user);
+    }
 }
