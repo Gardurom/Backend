@@ -35,4 +35,7 @@ Route::post('/personas/{id_persona}/baja', [PersonController::class, 'withdraw']
     ]);
 
 Route::post('/personas/{id_persona}/reingreso', [PersonController::class, 'reinstate'])
-    ->middleware('auth:sanctum');
+    ->middleware([
+        'auth:sanctum',
+        'siga.permission:personas.reingreso',
+    ]);

@@ -16,12 +16,51 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
         $response->assertUnauthorized();
     }
 
+    public function test_authenticated_user_without_permission_cannot_reinstate_person(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO SIN PERMISO REINGRESO PERSONA',
+            'email' => 'persona.reinstate.forbidden@siga.test',
+        ]);
+
+        $person = $this->db->selectOne(
+            'INSERT INTO institutional.persons (
+                nombres,
+                estatus,
+                fecha_baja
+            )
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            RETURNING id_persona',
+            [
+                'PERSONA PROTEGIDA REINGRESO',
+                'BAJA',
+            ]
+        );
+
+        $this->actingAs($user);
+
+        $csrfToken = 'csrf-token-persona-reinstate-forbidden-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader('X-CSRF-TOKEN', $csrfToken)
+            ->postJson(
+                '/api/personas/'.$person->id_persona.'/reingreso'
+            );
+
+        $response->assertForbidden();
+    }
+
     public function test_authenticated_user_can_reinstate_withdrawn_person(): void
     {
         $user = User::factory()->create([
             'name' => 'USUARIO REINGRESO PERSONA',
             'email' => 'persona.reinstate@siga.test',
         ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (
@@ -73,6 +112,8 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
             'email' => 'persona.reinstate.missing@siga.test',
         ]);
 
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
         $this->actingAs($user);
 
         $csrfToken = 'csrf-token-persona-reinstate-missing-siga';
@@ -95,6 +136,8 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
             'name' => 'USUARIO REINGRESO REPETIDO PERSONA',
             'email' => 'persona.reinstate.repeated@siga.test',
         ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (
@@ -159,6 +202,8 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
             'email' => 'persona.reinstate.audit.authenticated@siga.test',
         ]);
 
+        $this->assignRole($authenticatedUser, 'ROL_GESTOR_PERSONAS');
+
         $otherUser = User::factory()->create([
             'name' => 'USUARIO SUPLANTADO REINGRESO PERSONA',
             'email' => 'persona.reinstate.audit.other@siga.test',
@@ -212,5 +257,29 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
             $otherUser->id,
             $activity->id_usuario
         );
+    }
+
+    private function assignRole(
+        User $user,
+        string $roleCode
+    ): void {
+        $roleId = $this->db
+            ->table('system.roles')
+            ->where('code', $roleCode)
+            ->value('id');
+
+        self::assertNotNull(
+            $roleId,
+            "Debe existir el rol {$roleCode}."
+        );
+
+        $this->db
+            ->table('system.user_roles')
+            ->insert([
+                'user_id' => $user->id,
+                'role_id' => $roleId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 }
