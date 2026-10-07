@@ -76,6 +76,45 @@ class PersonApiShowTest extends HttpFunctionalTestCase
             );
     }
 
+    public function test_explicit_deny_overrides_allow_when_showing_person(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO ALLOW Y DENY PERSONA',
+            'email' => 'persona.show.deny-overrides@siga.test',
+        ]);
+
+        $this->assignRole(
+            $user,
+            'ROL_GESTOR_PERSONAS'
+        );
+
+        $this->assignRole(
+            $user,
+            'ROL_CONSULTA_PERSONAS'
+        );
+
+        $this->replaceRolePermissionEffect(
+            'ROL_CONSULTA_PERSONAS',
+            'personas.ver',
+            'DENY'
+        );
+
+        $person = $this->db->selectOne(
+            'INSERT INTO institutional.persons (nombres)
+             VALUES (?)
+             RETURNING id_persona',
+            ['PERSONA DENEGADA POR REGLA EXPLICITA']
+        );
+
+        $this->actingAs($user);
+
+        $response = $this->getJson(
+            '/api/personas/'.$person->id_persona
+        );
+
+        $response->assertForbidden();
+    }
+
     public function test_authenticated_user_with_permission_receives_not_found_for_missing_person(): void
     {
         $user = User::factory()->create([
@@ -116,6 +155,54 @@ class PersonApiShowTest extends HttpFunctionalTestCase
             ->insert([
                 'user_id' => $user->id,
                 'role_id' => $roleId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+    }
+
+    private function replaceRolePermissionEffect(
+        string $roleCode,
+        string $permissionCode,
+        string $effect
+    ): void {
+        $roleId = $this->db
+            ->table('system.roles')
+            ->where('code', $roleCode)
+            ->value('id');
+
+        $permissionId = $this->db
+            ->table('system.permissions')
+            ->where('code', $permissionCode)
+            ->value('id');
+
+        self::assertNotNull(
+            $roleId,
+            "Debe existir el rol {$roleCode}."
+        );
+
+        self::assertNotNull(
+            $permissionId,
+            "Debe existir el permiso {$permissionCode}."
+        );
+
+        $deleted = $this->db
+            ->table('system.role_permissions')
+            ->where('role_id', $roleId)
+            ->where('permission_id', $permissionId)
+            ->delete();
+
+        self::assertSame(
+            1,
+            $deleted,
+            'Debe existir exactamente una relación rol-permiso.'
+        );
+
+        $this->db
+            ->table('system.role_permissions')
+            ->insert([
+                'role_id' => $roleId,
+                'permission_id' => $permissionId,
+                'effect' => $effect,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
