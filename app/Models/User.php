@@ -57,4 +57,16 @@ class User extends Authenticatable
             'role_id'
         )->withTimestamps();
     }
+
+    public function profiles(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Profile::class,
+            'system.user_profiles',
+            'user_id',
+            'profile_id'
+        )
+            ->withPivot('is_default')
+            ->withTimestamps();
+    }
 }
