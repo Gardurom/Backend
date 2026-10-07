@@ -11,7 +11,10 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::post('/personas', [PersonController::class, 'store'])
-    ->middleware('auth:sanctum');
+    ->middleware([
+        'auth:sanctum',
+        'siga.permission:personas.crear',
+    ]);
 
 Route::get('/personas/{id_persona}', [PersonController::class, 'show'])
     ->middleware([

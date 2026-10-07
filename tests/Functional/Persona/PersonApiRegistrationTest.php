@@ -16,12 +16,37 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
         $response->assertUnauthorized();
     }
 
+    public function test_authenticated_user_without_permission_cannot_register_person(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO SIN PERMISO REGISTRO PERSONA',
+            'email' => 'persona.register.forbidden@siga.test',
+        ]);
+
+        $this->actingAs($user);
+
+        $csrfToken = 'csrf-token-persona-register-forbidden-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader('X-CSRF-TOKEN', $csrfToken)
+            ->postJson('/api/personas', [
+                'nombres' => 'PERSONA NO AUTORIZADA',
+            ]);
+
+        $response->assertForbidden();
+    }
+
     public function test_authenticated_user_can_register_person(): void
     {
         $user = User::factory()->create([
             'name' => 'USUARIO API PERSONA',
             'email' => 'persona.api@siga.test',
         ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $this->actingAs($user);
 
@@ -93,6 +118,8 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
             'email' => 'persona.validation@siga.test',
         ]);
 
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
         $this->actingAs($user);
 
         $csrfToken = 'csrf-token-persona-validation-siga';
@@ -117,6 +144,8 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
             'name' => 'USUARIO NORMALIZACION ESPACIOS',
             'email' => 'persona.spaces@siga.test',
         ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $this->actingAs($user);
 
@@ -159,6 +188,8 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
             'email' => 'persona.sex@siga.test',
         ]);
 
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
         $this->actingAs($user);
 
         $csrfToken = 'csrf-token-persona-sex-siga';
@@ -185,6 +216,8 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
             'email' => 'persona.marital-status@siga.test',
         ]);
 
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
         $this->actingAs($user);
 
         $csrfToken = 'csrf-token-persona-marital-status-siga';
@@ -210,6 +243,8 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
             'name' => 'USUARIO VALIDACION FECHA NACIMIENTO',
             'email' => 'persona.birth-date@siga.test',
         ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $this->actingAs($user);
 
@@ -239,6 +274,8 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
             'name' => 'USUARIO SEGURIDAD ESTATUS',
             'email' => 'persona.status@siga.test',
         ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $this->actingAs($user);
 
@@ -276,6 +313,8 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
             'name' => 'USUARIO AUTENTICADO API PERSONA',
             'email' => 'persona.audit.authenticated@siga.test',
         ]);
+
+        $this->assignRole($authenticatedUser, 'ROL_GESTOR_PERSONAS');
 
         $otherUser = User::factory()->create([
             'name' => 'USUARIO SUPLANTADO API PERSONA',
@@ -316,5 +355,29 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
             $otherUser->id,
             $activity->id_usuario
         );
+    }
+
+    private function assignRole(
+        User $user,
+        string $roleCode
+    ): void {
+        $roleId = $this->db
+            ->table('system.roles')
+            ->where('code', $roleCode)
+            ->value('id');
+
+        self::assertNotNull(
+            $roleId,
+            "Debe existir el rol {$roleCode}."
+        );
+
+        $this->db
+            ->table('system.user_roles')
+            ->insert([
+                'user_id' => $user->id,
+                'role_id' => $roleId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 }
