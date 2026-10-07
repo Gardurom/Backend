@@ -14,7 +14,10 @@ Route::post('/personas', [PersonController::class, 'store'])
     ->middleware('auth:sanctum');
 
 Route::get('/personas/{id_persona}', [PersonController::class, 'show'])
-    ->middleware('auth:sanctum');
+    ->middleware([
+        'auth:sanctum',
+        'siga.permission:personas.ver',
+    ]);
 
 Route::patch('/personas/{id_persona}', [PersonController::class, 'update'])
     ->middleware('auth:sanctum');
