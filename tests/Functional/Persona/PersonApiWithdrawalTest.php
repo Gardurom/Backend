@@ -16,12 +16,44 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
         $response->assertUnauthorized();
     }
 
+    public function test_authenticated_user_without_permission_cannot_withdraw_person(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO SIN PERMISO BAJA PERSONA',
+            'email' => 'persona.withdraw.forbidden@siga.test',
+        ]);
+
+        $person = $this->db->selectOne(
+            'INSERT INTO institutional.persons (nombres)
+             VALUES (?)
+             RETURNING id_persona',
+            ['PERSONA PROTEGIDA BAJA']
+        );
+
+        $this->actingAs($user);
+
+        $csrfToken = 'csrf-token-persona-withdraw-forbidden-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader('X-CSRF-TOKEN', $csrfToken)
+            ->postJson(
+                '/api/personas/'.$person->id_persona.'/baja'
+            );
+
+        $response->assertForbidden();
+    }
+
     public function test_authenticated_user_can_withdraw_existing_person(): void
     {
         $user = User::factory()->create([
             'name' => 'USUARIO BAJA PERSONA',
             'email' => 'persona.withdraw@siga.test',
         ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (nombres)
@@ -66,6 +98,8 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
             'email' => 'persona.withdraw.missing@siga.test',
         ]);
 
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
         $this->actingAs($user);
 
         $csrfToken = 'csrf-token-persona-withdraw-missing-siga';
@@ -88,6 +122,8 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
             'name' => 'USUARIO BAJA REPETIDA PERSONA',
             'email' => 'persona.withdraw.repeated@siga.test',
         ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (nombres)
@@ -144,6 +180,8 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
             'email' => 'persona.withdraw.audit.authenticated@siga.test',
         ]);
 
+        $this->assignRole($authenticatedUser, 'ROL_GESTOR_PERSONAS');
+
         $otherUser = User::factory()->create([
             'name' => 'USUARIO SUPLANTADO BAJA PERSONA',
             'email' => 'persona.withdraw.audit.other@siga.test',
@@ -190,5 +228,29 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
             $otherUser->id,
             $activity->id_usuario
         );
+    }
+
+    private function assignRole(
+        User $user,
+        string $roleCode
+    ): void {
+        $roleId = $this->db
+            ->table('system.roles')
+            ->where('code', $roleCode)
+            ->value('id');
+
+        self::assertNotNull(
+            $roleId,
+            "Debe existir el rol {$roleCode}."
+        );
+
+        $this->db
+            ->table('system.user_roles')
+            ->insert([
+                'user_id' => $user->id,
+                'role_id' => $roleId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 }
