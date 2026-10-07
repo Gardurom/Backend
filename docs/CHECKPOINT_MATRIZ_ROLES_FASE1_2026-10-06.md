@@ -3,8 +3,9 @@
 **Proyecto:** Sistema Integral de Gestión Académica (SIGA)  
 **Fecha del checkpoint:** 2026-10-06  
 **Estado:** Aprobado  
-**Base técnica verificada:** commit `c618dce` (`feat: agregar catalogo inicial de permisos`)  
-**Actualización de diseño:** 2026-10-06 — previsión de administrador integral de SIGA
+**Base técnica verificada:** commit `b92b5b4` (`feat: agregar matriz inicial de roles y permisos`)  
+**Actualización de diseño:** 2026-10-06 — previsión de administrador integral de SIGA  
+**Actualización de diseño:** 2026-10-07 — autorización explícita `ALLOW/DENY` y Perfiles N:M para frontend
 
 ---
 
@@ -259,7 +260,9 @@ Usuario
  └─ ROL_AUDITOR
 ```
 
-Sin embargo, la combinación de roles no debe interpretarse como una autorización ilimitada.
+La combinación de roles no debe interpretarse como una autorización ilimitada ni como una suma ciega de privilegios.
+
+La autorización efectiva se resolverá considerando todas las reglas asociadas a los roles del usuario, con prevalencia de `DENY` explícito sobre `ALLOW` explícito y denegación por defecto.
 
 La acumulación estará sujeta a:
 
@@ -267,23 +270,30 @@ La acumulación estará sujeta a:
 - incompatibilidades futuras;
 - separación de funciones;
 - alcance de datos;
-- políticas explícitas.
+- políticas explícitas;
+- reglas explícitas `ALLOW/DENY`.
 
 ---
 
 ## 9. Implementación técnica posterior a este checkpoint
 
-La aprobación de esta matriz autoriza iniciar los siguientes bloques técnicos, cada uno mediante TDD:
+Los cuatro roles, el catálogo inicial de permisos y las nueve relaciones iniciales en `system.role_permissions` ya fueron implementados y probados.
 
-1. insertar los cuatro roles aprobados en `system.roles`;
-2. probar el catálogo de roles;
-3. insertar las asociaciones aprobadas en `system.role_permissions`;
-4. probar la matriz rol-permiso;
-5. incorporar relaciones Eloquent con `Permission`, cuando corresponda;
-6. crear el mecanismo de autorización del backend;
-7. proteger los endpoints de Persona;
-8. proteger creación y asignación de usuarios/roles;
-9. incorporar auditoría para asignación y revocación de accesos.
+A partir de la actualización de diseño del 2026-10-07, la secuencia técnica aprobada continúa así, siempre mediante TDD:
+
+1. definir el contrato único de resolución de permisos del backend;
+2. incorporar `effect` a `system.role_permissions` mediante una nueva migración;
+3. migrar las nueve relaciones existentes a `ALLOW`;
+4. probar la matriz incluyendo `ALLOW` y `DENY`;
+5. implementar y probar la resolución efectiva, incluyendo conflicto `ALLOW/DENY`, ausencia de regla y múltiples roles;
+6. definir la auditoría de cambios de seguridad;
+7. incorporar las relaciones Eloquent necesarias entre Roles y Permisos;
+8. diseñar `system.profiles` y `system.user_profiles`;
+9. implementar Perfil por defecto y Perfil activo por sesión;
+10. definir cómo los Perfiles describen módulos, menús, opciones y página inicial del frontend;
+11. dejar prevista la autorización contextual por alcance de datos;
+12. proteger los endpoints de Persona;
+13. proteger creación y asignación de usuarios/roles.
 
 Cada bloque deberá cerrarse con pruebas específicas, suite global, Pint, `git diff --check`, commit y push.
 
@@ -319,11 +329,254 @@ Este checkpoint no autoriza aún:
 - permisos directos a usuarios fuera del modelo rol-permiso;
 - delegación temporal de roles;
 - MFA o Passkeys/WebAuthn;
-- perfiles como fuente independiente de autorización.
+- perfiles como fuente independiente de autorización;
+- permisos directos Usuario → Permiso (`system.user_permissions`) en esta etapa;
+- uso del Perfil activo para ampliar, reducir o decidir permisos del backend;
+- un valor `DEFAULT 'ALLOW'` para nuevas relaciones rol-permiso;
+- implementar alcance de datos (`scope`) antes de definir su modelo contextual.
 
 ---
 
-## 12. Decisión del checkpoint
+## 12. Autorización efectiva `ALLOW/DENY`
+
+Se aprueba evolucionar `system.role_permissions` para que cada relación Rol ↔ Permiso tenga un efecto explícito:
+
+```text
+ALLOW
+DENY
+```
+
+La columna deberá implementarse mediante una nueva migración, sin modificar migraciones ya publicadas.
+
+Diseño aprobado:
+
+```text
+system.role_permissions
+├─ role_id
+├─ permission_id
+├─ effect          varchar(5) NOT NULL
+├─ created_at
+└─ updated_at
+```
+
+La restricción deberá admitir exclusivamente:
+
+```text
+ALLOW
+DENY
+```
+
+No se definirá `DEFAULT 'ALLOW'`. Toda nueva relación deberá declarar explícitamente su efecto.
+
+Las nueve relaciones existentes deberán migrarse explícitamente a `ALLOW`.
+
+Regla formal de resolución:
+
+```text
+Sea roles(u) el conjunto de roles asignados al usuario u.
+
+E(u, p) =
+
+DENY
+    si existe r ∈ roles(u)
+    tal que (r, p, DENY) existe en role_permissions
+
+ALLOW
+    si no existe ningún DENY
+    y existe r ∈ roles(u)
+    tal que (r, p, ALLOW) existe en role_permissions
+
+DENY
+    en cualquier otro caso
+```
+
+Por tanto:
+
+```text
+DENY explícito > ALLOW explícito > ausencia = DENY
+```
+
+Esta regla deberá estar cubierta por pruebas automatizadas y aplicarse de manera uniforme en todos los módulos.
+
+---
+
+## 13. Contrato único de resolución
+
+Antes de proteger rutas o acciones deberá existir una única pieza responsable de resolver permisos efectivos.
+
+Conceptualmente:
+
+```text
+PermissionResolver
+```
+
+El contrato deberá poder responder, como mínimo:
+
+```text
+resolve(User $user, string $permission)
+```
+
+y distinguir entre:
+
+- autorización por `ALLOW`;
+- denegación por `DENY` explícito;
+- denegación por ausencia de regla.
+
+La aplicación podrá exponer posteriormente una operación simplificada tipo `allows(...)`, pero Controllers, Policies, Gates o Middleware no deberán reimplementar el algoritmo por su cuenta.
+
+---
+
+## 14. Perfiles para la interfaz de usuario
+
+Se aprueba implementar Perfiles como entidad real para controlar la experiencia del frontend.
+
+La relación será:
+
+```text
+USUARIO ── N:M ── PERFIL
+```
+
+mediante una tabla intermedia:
+
+```text
+system.user_profiles
+```
+
+y un catálogo:
+
+```text
+system.profiles
+```
+
+Los Perfiles podrán definir, entre otros elementos:
+
+- módulos visibles;
+- menús;
+- opciones de navegación;
+- página inicial;
+- agrupaciones funcionales de interfaz.
+
+Un Perfil **no otorga permisos, no amplía permisos y no revoca permisos del backend**.
+
+Los Perfiles controlan UX; Roles + Permisos + `ALLOW/DENY` controlan seguridad.
+
+Si un Perfil muestra una acción para la que el usuario no tiene `ALLOW` efectivo, el backend deberá rechazarla igualmente.
+
+---
+
+## 15. Perfil por defecto y Perfil activo
+
+Un Usuario podrá tener varios Perfiles asignados.
+
+`system.user_profiles` deberá permitir identificar un Perfil por defecto para el usuario.
+
+El Perfil activo se resolverá por sesión para evitar que cambiar de contexto en un dispositivo modifique necesariamente el contexto de otras sesiones del mismo usuario.
+
+Si el frontend solicita cambiar de Perfil, el backend deberá verificar que ese Perfil esté realmente asignado al Usuario.
+
+El Perfil activo nunca participará en la fórmula de autorización del backend.
+
+Si un Usuario autenticado no tiene Perfil asignado, la aplicación deberá ofrecer una interfaz mínima, limitada a elementos como:
+
+- identificación de la sesión;
+- información básica del usuario;
+- cierre de sesión;
+- indicación de que no existe Perfil de interfaz configurado.
+
+No se asignará automáticamente un Perfil sin una regla explícita.
+
+---
+
+## 16. Permisos directos por usuario
+
+No se implementará `system.user_permissions` en esta etapa.
+
+La autorización seguirá la ruta:
+
+```text
+Usuario → Roles → Permisos
+```
+
+Las restricciones individuales deberán resolverse inicialmente mediante Roles explícitos, incluidos posibles roles restrictivos con `DENY`.
+
+Si un requerimiento institucional futuro demuestra la necesidad de excepciones directas por Usuario, esa capacidad deberá evaluarse y aprobarse en un checkpoint posterior.
+
+---
+
+## 17. Auditoría de cambios de seguridad
+
+Los cambios en Roles, asignaciones de Roles, relaciones Rol ↔ Permiso y cambios `ALLOW/DENY` son operaciones sensibles y deberán dejar evidencia histórica auditable.
+
+Los campos `created_at` y `updated_at` se mantienen, pero no sustituyen un historial de cambios.
+
+La auditoría deberá registrar, como mínimo:
+
+- actor que ejecutó el cambio;
+- objeto afectado;
+- estado anterior;
+- estado posterior;
+- fecha y hora de la operación.
+
+La infraestructura de auditoría deberá integrarse con `system.activities` o con el mecanismo histórico que se defina específicamente para seguridad.
+
+Se mantiene la decisión previa de **no incorporar un campo `motivo`** salvo reapertura explícita de esa decisión.
+
+---
+
+## 18. Alcance de datos como evolución posterior
+
+Se reconoce que un permiso puede necesitar un alcance contextual.
+
+Ejemplos:
+
+```text
+propio
+grupo/materia
+tutorados
+academia
+área
+global
+```
+
+No se agregará todavía un simple campo `scope` a `system.role_permissions`.
+
+El alcance deberá diseñarse posteriormente mediante una política contextual o una estructura específica, por ejemplo una futura relación equivalente a `role_permission_scopes`, evitando reducir el problema a una cadena sin semántica suficiente.
+
+---
+
+## 19. Arquitectura consolidada
+
+La arquitectura aprobada queda conceptualmente así:
+
+```text
+PERSONA
+   │
+   └── 0..1 USUARIO
+              │
+              ├── N:M ROLES
+              │        │
+              │        └── N:M PERMISOS
+              │               └── effect = ALLOW | DENY
+              │
+              └── N:M PERFILES
+                       └── configuración UX del frontend
+```
+
+Separación obligatoria:
+
+```text
+ROLES + PERMISOS + ALLOW/DENY
+              │
+              └── SEGURIDAD DEL BACKEND
+
+PERFILES
+              │
+              └── EXPERIENCIA DEL FRONTEND
+```
+
+---
+
+## 20. Decisión del checkpoint
 
 **APROBADO.**
 
@@ -337,6 +590,10 @@ ROL_AUDITOR
 ```
 
 y la matriz rol-permiso definida en este documento será la referencia para los siguientes bloques de implementación.
+
+A partir de la actualización del 2026-10-07, esas relaciones deberán evolucionar a reglas explícitas `ALLOW/DENY`, con prevalencia de `DENY`, denegación por defecto y sin `DEFAULT ALLOW`.
+
+También se aprueba incorporar Perfiles N:M con Usuarios exclusivamente para controlar la experiencia del frontend. Los Perfiles no participan en la decisión de seguridad del backend.
 
 La posible incorporación futura de `ROL_SUPERADMIN_SIGA` queda únicamente como previsión arquitectónica. No forma parte de esta matriz ni autoriza su creación en la Fase 1.
 
