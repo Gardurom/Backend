@@ -23,7 +23,10 @@ Route::get('/personas/{id_persona}', [PersonController::class, 'show'])
     ]);
 
 Route::patch('/personas/{id_persona}', [PersonController::class, 'update'])
-    ->middleware('auth:sanctum');
+    ->middleware([
+        'auth:sanctum',
+        'siga.permission:personas.actualizar',
+    ]);
 
 Route::post('/personas/{id_persona}/baja', [PersonController::class, 'withdraw'])
     ->middleware('auth:sanctum');

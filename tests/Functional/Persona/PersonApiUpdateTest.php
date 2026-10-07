@@ -19,12 +19,47 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
         $response->assertUnauthorized();
     }
 
+    public function test_authenticated_user_without_permission_cannot_update_person(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO SIN PERMISO ACTUALIZAR PERSONA',
+            'email' => 'persona.update.forbidden@siga.test',
+        ]);
+
+        $person = $this->db->selectOne(
+            'INSERT INTO institutional.persons (nombres)
+             VALUES (?)
+             RETURNING id_persona',
+            ['PERSONA PROTEGIDA ACTUALIZACION']
+        );
+
+        $this->actingAs($user);
+
+        $csrfToken = 'csrf-token-persona-update-forbidden-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader('X-CSRF-TOKEN', $csrfToken)
+            ->patchJson(
+                '/api/personas/'.$person->id_persona,
+                [
+                    'nombres' => 'PERSONA NO AUTORIZADA',
+                ]
+            );
+
+        $response->assertForbidden();
+    }
+
     public function test_authenticated_user_can_update_existing_person(): void
     {
         $user = User::factory()->create([
             'name' => 'USUARIO ACTUALIZA PERSONA',
             'email' => 'persona.update@siga.test',
         ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (nombres, correo_personal)
@@ -76,6 +111,8 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
             'email' => 'persona.update.validation@siga.test',
         ]);
 
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (nombres)
          VALUES (?)
@@ -111,6 +148,8 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
             'email' => 'persona.update.missing@siga.test',
         ]);
 
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
         $this->actingAs($user);
 
         $csrfToken = 'csrf-token-persona-update-missing-siga';
@@ -136,6 +175,8 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
             'name' => 'USUARIO SEGURIDAD ESTATUS ACTUALIZACION',
             'email' => 'persona.update.status@siga.test',
         ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (nombres)
@@ -180,6 +221,8 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
             'name' => 'USUARIO AUTENTICADO ACTUALIZACION',
             'email' => 'persona.update.audit.authenticated@siga.test',
         ]);
+
+        $this->assignRole($authenticatedUser, 'ROL_GESTOR_PERSONAS');
 
         $otherUser = User::factory()->create([
             'name' => 'USUARIO SUPLANTADO ACTUALIZACION',
@@ -237,6 +280,8 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
             'email' => 'persona.update.sex@siga.test',
         ]);
 
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (nombres)
          VALUES (?)
@@ -272,6 +317,8 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
             'email' => 'persona.update.marital-status@siga.test',
         ]);
 
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (nombres)
          VALUES (?)
@@ -306,6 +353,8 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
             'name' => 'USUARIO VALIDACION FECHA NACIMIENTO ACTUALIZACION',
             'email' => 'persona.update.birth-date@siga.test',
         ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (nombres)
@@ -345,6 +394,8 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
             'email' => 'persona.update.no-changes@siga.test',
         ]);
 
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (nombres)
          VALUES (?)
@@ -383,5 +434,29 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
             ->exists();
 
         self::assertFalse($exists);
+    }
+
+    private function assignRole(
+        User $user,
+        string $roleCode
+    ): void {
+        $roleId = $this->db
+            ->table('system.roles')
+            ->where('code', $roleCode)
+            ->value('id');
+
+        self::assertNotNull(
+            $roleId,
+            "Debe existir el rol {$roleCode}."
+        );
+
+        $this->db
+            ->table('system.user_roles')
+            ->insert([
+                'user_id' => $user->id,
+                'role_id' => $roleId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 }
