@@ -7,20 +7,22 @@ class RolePermissionMatrixTest extends InstallationTestCase
     public function test_initial_role_permission_matrix_matches_approved_design(): void
     {
         $expected = [
-            'ROL_ADMIN_SISTEMA|usuarios.asignar_roles',
-            'ROL_ADMIN_SISTEMA|usuarios.crear',
-            'ROL_AUDITOR|auditoria.ver',
-            'ROL_CONSULTA_PERSONAS|personas.ver',
-            'ROL_GESTOR_PERSONAS|personas.actualizar',
-            'ROL_GESTOR_PERSONAS|personas.baja',
-            'ROL_GESTOR_PERSONAS|personas.crear',
-            'ROL_GESTOR_PERSONAS|personas.reingreso',
-            'ROL_GESTOR_PERSONAS|personas.ver',
+            'ROL_ADMIN_SISTEMA|usuarios.asignar_roles|ALLOW',
+            'ROL_ADMIN_SISTEMA|usuarios.crear|ALLOW',
+            'ROL_AUDITOR|auditoria.ver|ALLOW',
+            'ROL_CONSULTA_PERSONAS|personas.ver|ALLOW',
+            'ROL_GESTOR_PERSONAS|personas.actualizar|ALLOW',
+            'ROL_GESTOR_PERSONAS|personas.baja|ALLOW',
+            'ROL_GESTOR_PERSONAS|personas.crear|ALLOW',
+            'ROL_GESTOR_PERSONAS|personas.reingreso|ALLOW',
+            'ROL_GESTOR_PERSONAS|personas.ver|ALLOW',
         ];
 
         $relationships = $this->db->select(
-            "SELECT r.code AS role_code,
-                    p.code AS permission_code
+            "SELECT
+                r.code AS role_code,
+                p.code AS permission_code,
+                rp.effect
              FROM system.role_permissions AS rp
              JOIN system.roles AS r
                ON r.id = rp.role_id
@@ -37,9 +39,10 @@ class RolePermissionMatrixTest extends InstallationTestCase
 
         $actual = array_map(
             fn ($relationship) => sprintf(
-                '%s|%s',
+                '%s|%s|%s',
                 $relationship->role_code,
-                $relationship->permission_code
+                $relationship->permission_code,
+                $relationship->effect
             ),
             $relationships
         );
@@ -47,7 +50,7 @@ class RolePermissionMatrixTest extends InstallationTestCase
         self::assertSame(
             $expected,
             $actual,
-            'La matriz inicial de roles y permisos no coincide con el checkpoint aprobado.'
+            'La matriz inicial de roles, permisos y efectos no coincide con el checkpoint aprobado.'
         );
     }
 }

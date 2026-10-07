@@ -42,8 +42,67 @@ class RolePermissionRelationshipTest extends InstallationTestCase
                 'permission_id',
                 'created_at',
                 'updated_at',
+                'effect',
             ],
             $names
+        );
+    }
+
+    public function test_role_permission_effect_is_required_and_has_no_default(): void
+    {
+        $column = $this->db->selectOne(
+            "SELECT
+                is_nullable,
+                column_default
+             FROM information_schema.columns
+             WHERE table_schema = 'system'
+               AND table_name = 'role_permissions'
+               AND column_name = 'effect'"
+        );
+
+        self::assertNotNull(
+            $column,
+            'Debe existir la columna effect.'
+        );
+
+        self::assertSame(
+            'NO',
+            $column->is_nullable,
+            'effect debe ser NOT NULL.'
+        );
+
+        self::assertNull(
+            $column->column_default,
+            'effect no debe tener DEFAULT.'
+        );
+    }
+
+    public function test_role_permission_effect_accepts_only_allow_or_deny(): void
+    {
+        $constraints = $this->db->select(
+            "SELECT pg_get_constraintdef(c.oid) AS definition
+             FROM pg_catalog.pg_constraint AS c
+             JOIN pg_catalog.pg_class AS t
+               ON t.oid = c.conrelid
+             JOIN pg_catalog.pg_namespace AS n
+               ON n.oid = t.relnamespace
+             WHERE n.nspname = 'system'
+               AND t.relname = 'role_permissions'
+               AND c.contype = 'c'"
+        );
+
+        $definitions = array_map(
+            fn ($constraint) => $constraint->definition,
+            $constraints
+        );
+
+        self::assertTrue(
+            collect($definitions)->contains(
+                fn ($definition) => str_contains($definition, 'effect')
+                    && str_contains($definition, 'ALLOW')
+                    && str_contains($definition, 'DENY')
+            ),
+            'effect debe estar restringido a ALLOW y DENY.'
         );
     }
 
