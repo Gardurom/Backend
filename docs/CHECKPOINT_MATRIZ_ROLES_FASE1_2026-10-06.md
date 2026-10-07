@@ -3,7 +3,8 @@
 **Proyecto:** Sistema Integral de Gestión Académica (SIGA)  
 **Fecha del checkpoint:** 2026-10-06  
 **Estado:** Aprobado  
-**Base técnica verificada:** commit `c618dce` (`feat: agregar catalogo inicial de permisos`)
+**Base técnica verificada:** commit `c618dce` (`feat: agregar catalogo inicial de permisos`)  
+**Actualización de diseño:** 2026-10-06 — previsión de administrador integral de SIGA
 
 ---
 
@@ -118,6 +119,46 @@ Permiso:
 Este rol se diseña como rol de consulta.
 
 No recibe permisos de escritura sobre Persona ni permisos de administración de usuarios por defecto.
+
+---
+
+### 3.5 Previsión futura: `ROL_SUPERADMIN_SIGA`
+
+La arquitectura aprobada permite incorporar en el futuro un rol de administración integral de SIGA si existe una solicitud institucional formal y justificada.
+
+El código previsto para ese caso sería:
+
+```text
+ROL_SUPERADMIN_SIGA
+```
+
+Este rol **no forma parte de la Fase 1**, no se insertará todavía en `system.roles` y no modifica la matriz aprobada en este checkpoint.
+
+Su finalidad sería distinta de `ROL_ADMIN_SISTEMA`:
+
+- `ROL_ADMIN_SISTEMA` conserva una responsabilidad técnica limitada a administración de cuentas, roles y accesos;
+- `ROL_SUPERADMIN_SIGA`, si se aprueba posteriormente, representaría una autorización integral y excepcional sobre los módulos funcionales que expresamente se le asignen.
+
+No se implementará como una puerta trasera ni como una excepción que omita el modelo de autorización. Deberá continuar respetando la arquitectura:
+
+```text
+Usuario → Rol → Permisos
+```
+
+Por lo tanto, un eventual `ROL_SUPERADMIN_SIGA` deberá contar con permisos explícitos y verificables. La existencia del rol no debe implicar por sí sola un bypass global en el código.
+
+Antes de incorporarlo deberán definirse y aprobarse, como mínimo:
+
+1. la solicitud institucional que justifique su existencia;
+2. el catálogo exacto de permisos que tendrá;
+3. los módulos y alcances de datos sobre los que podrá actuar;
+4. las incompatibilidades o restricciones aplicables;
+5. la auditoría de su asignación, revocación y operaciones sensibles;
+6. controles reforzados de autenticación cuando estén disponibles, incluyendo la evaluación de MFA o Passkeys/WebAuthn.
+
+La asignación de este rol deberá considerarse excepcional, de mínimo número de usuarios y plenamente auditable.
+
+Mientras `ROL_SUPERADMIN_SIGA` no sea aprobado e implementado, un usuario que necesite cubrir varias responsabilidades deberá recibir explícitamente los roles vigentes correspondientes. La combinación de roles seguirá sujeta a separación de funciones, incompatibilidades y alcance de datos.
 
 ---
 
@@ -273,6 +314,7 @@ Este checkpoint no autoriza aún:
 - permisos de calificaciones, grupos, asistencia, biblioteca, RH, servicios o beneficios;
 - asignación automática de roles según condición institucional;
 - superusuario funcional implícito;
+- creación o asignación de `ROL_SUPERADMIN_SIGA` sin una aprobación institucional y técnica posterior;
 - permisos directos a Personas;
 - permisos directos a usuarios fuera del modelo rol-permiso;
 - delegación temporal de roles;
@@ -295,6 +337,8 @@ ROL_AUDITOR
 ```
 
 y la matriz rol-permiso definida en este documento será la referencia para los siguientes bloques de implementación.
+
+La posible incorporación futura de `ROL_SUPERADMIN_SIGA` queda únicamente como previsión arquitectónica. No forma parte de esta matriz ni autoriza su creación en la Fase 1.
 
 Este checkpoint complementa el documento:
 
