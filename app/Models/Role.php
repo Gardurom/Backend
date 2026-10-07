@@ -23,4 +23,14 @@ class Role extends Model
             'user_id'
         )->withTimestamps();
     }
+
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Permission::class,
+            'system.role_permissions',
+            'role_id',
+            'permission_id'
+        )->withTimestamps();
+    }
 }
