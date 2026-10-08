@@ -23,6 +23,7 @@ SPA SIGA
   |       +--> Auth::attempt()
   |       +--> login correcto => limpiar contador
   |       +--> session()->regenerate()
+  |       +--> registra siga_authenticated_at
   |
   +--> cookie de sesión
   |
@@ -55,6 +56,8 @@ Componentes confirmados en código:
 - regeneración del token CSRF al logout.
 - sesiones con driver `database`.
 - tabla `system.sessions`.
+- timeout absoluto de sesión de 8 horas.
+- middleware `siga.session.absolute` en las rutas API autenticadas actuales.
 
 Configuración versionada relevante:
 
@@ -192,25 +195,32 @@ La auditoría de eventos de throttling y otros eventos sospechosos sigue planifi
 - timeout por inactividad de 30 minutos;
 - cookie `HttpOnly`;
 - política `SameSite=Lax`;
-- salvaguarda de `Secure` obligatoria al arrancar en producción.
+- salvaguarda de `Secure` obligatoria al arrancar en producción;
+- timeout absoluto de 8 horas desde el inicio autenticado.
 
 Evidencia:
 
 - prueba funcional: `SessionSecurityConfigurationTest`;
-- commit: `d3acd0e feat: endurecer configuracion de sesiones`.
+- commit: `d3acd0e feat: endurecer configuracion de sesiones`;
+- prueba funcional: `SessionAbsoluteTimeoutTest`;
+- commit: `bee9ca1 feat: agregar timeout absoluto de sesion`.
+
+Reglas del timeout absoluto implementado:
+
+- el login correcto registra `siga_authenticated_at` después de regenerar la sesión;
+- la duración máxima es de 8 horas;
+- justo antes de 8 horas la sesión continúa válida;
+- al alcanzar o superar 8 horas se ejecuta logout, se invalida la sesión, se regenera el token CSRF y se responde HTTP 401;
+- una sesión existente sin `siga_authenticated_at` inicializa la marca en su primera petición con sesión;
+- si la petición autenticada no tiene store de sesión, el middleware no intenta aplicar un timeout de sesión y deja continuar el mecanismo de autenticación correspondiente.
 
 **Endurecimiento planificado**
 
-- timeout absoluto;
 - revocación de otras sesiones ante cambios críticos;
 - reautenticación para operaciones sensibles;
 - posibilidad de administrar sesiones activas.
 
-Valor inicial de diseño aún pendiente:
-
-- 8 horas de duración absoluta.
-
-El timeout absoluto y la revocación no se consideran implementados hasta existir código/configuración y pruebas.
+La revocación y administración de sesiones no se consideran implementadas hasta existir código/configuración y pruebas.
 
 ## 10. MFA y Passkeys/WebAuthn
 
