@@ -43,11 +43,17 @@ Se incorporaron:
 - login/logout;
 - sesiones en PostgreSQL;
 - rate limiting específico del login por correo normalizado + IP;
-- limpieza del contador tras autenticación correcta.
+- limpieza del contador tras autenticación correcta;
+- timeout de inactividad de sesión de 30 minutos;
+- cifrado de datos de sesión;
+- política de cookie `HttpOnly` + `SameSite=Lax`;
+- salvaguarda que exige `SESSION_SECURE_COOKIE=true` en producción.
 
-Commit relevante:
+Commits relevantes:
 
 `215eab0 feat: limitar intentos de inicio de sesion`
+
+`d3acd0e feat: endurecer configuracion de sesiones`
 
 ## 5. Roles y permisos
 
@@ -107,14 +113,19 @@ Dentro de este endurecimiento ya se publicó:
 
 - rate limiting del login con máximo de 5 fallos por correo normalizado + IP en 60 segundos;
 - respuesta HTTP 429 con `Retry-After`;
-- limpieza del bucket tras login correcto.
+- limpieza del bucket tras login correcto;
+- timeout de inactividad de 30 minutos;
+- cifrado de sesión;
+- `HttpOnly` y `SameSite=Lax`;
+- validación de arranque que exige cookie `Secure` en producción.
 
 Permanecen como requisitos preproducción:
 
-- HTTPS/HSTS;
-- Secure cookies;
+- despliegue HTTPS/HSTS;
 - CSP/headers;
-- timeouts/revocación de sesión;
+- timeout absoluto;
+- revocación/gestión de sesiones;
+- reautenticación sensible;
 - auditoría de seguridad;
 - MFA;
 - Passkeys/WebAuthn.
@@ -137,7 +148,7 @@ A partir del 8 de octubre:
 
 ## 9. Próximo bloque
 
-Después de cerrar gestión básica de perfiles y rate limiting del login, el siguiente bloque recomendado es el endurecimiento y las pruebas de sesión/cookies.
+Después de cerrar gestión básica de perfiles, rate limiting y endurecimiento básico de sesión/cookies, el siguiente bloque recomendado es el timeout absoluto y la gestión/revocación de sesiones.
 
 ## 10. Regla de actualización
 
