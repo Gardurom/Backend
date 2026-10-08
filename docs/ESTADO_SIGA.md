@@ -6,7 +6,7 @@ Este estado refleja únicamente lo publicado en GitHub `main`.
 
 Commit de referencia:
 
-`b4131ee feat: asignar perfiles a usuarios`
+`d58f461 feat: desasignar perfiles de usuarios`
 
 ## 1. Plataforma
 
@@ -174,11 +174,15 @@ Reglas:
 - perfiles son UX, no seguridad;
 - User↔Profile es N:M;
 - `is_default` permite como máximo un perfil predeterminado por usuario;
-- un perfil asignado no se vuelve predeterminado automáticamente.
+- un perfil asignado no se vuelve predeterminado automáticamente;
+- eliminar un perfil asignado no selecciona otro predeterminado;
+- un usuario puede quedar sin perfiles;
+- un usuario puede tener perfiles sin predeterminado.
 
 Acciones publicadas:
 
 - `AssignProfile`;
+- `UnassignProfile`;
 - `SetDefaultProfile`.
 
 ## 10. Pruebas y calidad
@@ -202,7 +206,7 @@ Cobertura funcional relevante:
 - precedencia DENY;
 - Perfiles;
 - perfil predeterminado;
-- asignación de perfiles.
+- asignación y desasignación de perfiles.
 
 Controles de cierre:
 
@@ -212,11 +216,11 @@ Controles de cierre:
 - `composer test:all`;
 - `git diff --check`.
 
-## 11. Seguridad: nueva prioridad
+## 11. Seguridad: prioridad vigente
 
 La arquitectura de autenticación actual se conserva.
 
-Se incorporan como requisitos preproducción:
+Son requisitos preproducción:
 
 - rate limiting de login;
 - HTTPS/secure cookies;
@@ -228,27 +232,30 @@ Se incorporan como requisitos preproducción:
 - MFA;
 - Passkeys/WebAuthn.
 
-Passkeys/WebAuthn ya no se considera una mejora indefinidamente diferida.
+Passkeys/WebAuthn no se considera una mejora opcional indefinida.
 
-## 12. Pendientes principales
+## 12. Próximo bloque recomendado
 
-Inmediatos:
+Con la gestión básica de perfiles cerrada, el siguiente bloque técnico recomendado es:
 
-1. completar desasignación de perfiles;
-2. rate limiting del login;
-3. endurecimiento y pruebas de sesión/cookies;
-4. gestión/revocación de sesiones;
-5. auditoría de autenticación;
-6. headers de seguridad;
-7. MFA/Passkeys antes de producción;
-8. iniciar frontend Angular e integración SPA.
+`rate limiting del login`
+
+Después:
+
+1. endurecimiento y pruebas de sesión/cookies;
+2. gestión/revocación de sesiones;
+3. auditoría de autenticación;
+4. headers de seguridad;
+5. MFA/Passkeys antes de producción;
+6. iniciar frontend Angular e integración SPA.
 
 ## 13. Regla documental
 
-Este archivo debe permanecer compacto.
+Este archivo es un resumen operativo.
 
-Los detalles de seguridad se encuentran en:
+Las decisiones vigentes se obtienen de:
 
-- `AUTENTICACION_SEGURIDAD.md`;
-- `CHECKPOINT_SEGURIDAD_PERFILES_2026-10-08.md`;
-- `DECISIONES_TECNICAS.md`.
+- `DECISIONES_TECNICAS.md`;
+- documentos vivos específicos del dominio.
+
+Los checkpoints se conservan como evidencia histórica y no gobiernan cambios posteriores cuando existe una decisión viva más reciente.

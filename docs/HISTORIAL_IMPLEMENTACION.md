@@ -4,7 +4,9 @@
 
 ## 1. Propósito
 
-Este archivo resume hitos técnicos. Git sigue siendo la fuente primaria de detalle.
+Este archivo resume hitos técnicos publicados.
+
+Git sigue siendo la fuente primaria del detalle de commits.
 
 ## 2. Infraestructura inicial
 
@@ -25,7 +27,7 @@ Se incorporaron:
 - contador/función de expediente;
 - `institutional.persons`;
 - reglas de dominio e integridad;
-- acciones de registro, actualización, baja y reingreso;
+- acciones de registro, consulta, actualización, baja y reingreso;
 - API autenticada;
 - auditoría transaccional.
 
@@ -71,14 +73,25 @@ Hitos publicados:
 - modelos Eloquent;
 - catálogo inicial;
 - `SetDefaultProfile`;
-- `AssignProfile`.
+- `AssignProfile`;
+- `UnassignProfile`.
 
-Commit de referencia del estado publicado:
+Commits relevantes:
 
 ```text
 b4131ee
 feat: asignar perfiles a usuarios
+
+d58f461
+feat: desasignar perfiles de usuarios
 ```
+
+Reglas consolidadas:
+
+- perfiles no conceden permisos;
+- asignación y desasignación son explícitas;
+- no existe selección automática de perfil predeterminado;
+- desasignar el predeterminado puede dejar al usuario sin predeterminado.
 
 ## 7. Seguridad — decisión del 8 de octubre
 
@@ -97,11 +110,25 @@ Se elevan a requisitos preproducción:
 
 La decisión anterior de diferir Passkeys/WebAuthn como mejora posterior queda reemplazada.
 
-Checkpoint:
+Checkpoint histórico:
 
 `CHECKPOINT_SEGURIDAD_PERFILES_2026-10-08.md`
 
-## 8. Regla de actualización
+## 8. Gobierno documental
+
+A partir del 8 de octubre:
+
+- `DECISIONES_TECNICAS.md` gobierna decisiones vivas;
+- `ESTADO_SIGA.md` refleja lo publicado;
+- documentos de dominio definen reglas específicas;
+- checkpoints son históricos;
+- no se crean ramas ni Pull Requests sin autorización explícita.
+
+## 9. Próximo bloque
+
+Después de cerrar gestión básica de perfiles, el siguiente bloque recomendado es el rate limiting específico del login.
+
+## 10. Regla de actualización
 
 Agregar aquí solo hitos relevantes ya publicados.
 

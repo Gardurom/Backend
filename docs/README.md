@@ -4,65 +4,63 @@
 
 ## 1. Propósito
 
-Este directorio conserva la documentación técnica viva de SIGA.
+Este directorio conserva la documentación técnica viva de SIGA y forma parte de la base de requisitos, diseño y validación del sistema.
 
-La fuente de verdad se obtiene conjuntamente de:
+La documentación no es decorativa: debe consultarse antes de diseñar o implementar cambios relevantes.
 
-- código;
-- migraciones;
-- pruebas;
-- configuración;
-- commits;
-- documentación aprobada.
+## 2. Tipos de fuente
 
-## 2. Documentos principales
+### Decisiones vivas
 
-### ESTADO_SIGA.md
+`DECISIONES_TECNICAS.md`
 
-Resumen operativo del estado publicado.
+Gobierna las decisiones técnicas y funcionales vigentes.
 
-### ARQUITECTURA_TECNICA.md
+### Documentos vivos por dominio
 
-Arquitectura general, capas, responsabilidades e integraciones.
+- `ARQUITECTURA_TECNICA.md`;
+- `BASE_DATOS.md`;
+- `PERSONA.md`;
+- `AUDITORIA.md`;
+- `AUTENTICACION_SEGURIDAD.md`;
+- `PRUEBAS_Y_CALIDAD.md`.
 
-### BASE_DATOS.md
+Definen requisitos, límites, reglas y criterios de aceptación de cada área.
 
-PostgreSQL, esquemas, roles, privilegios y objetos principales.
+### Estado
 
-### PERSONA.md
+`ESTADO_SIGA.md`
 
-Núcleo de identidad institucional.
+Indica qué está realmente publicado en `main`.
 
-### AUDITORIA.md
+### Checkpoints
 
-Auditoría transaccional, inmutabilidad y evolución prevista.
+Congelan decisiones y estado de una fecha concreta.
 
-### AUTENTICACION_SEGURIDAD.md
+Son históricos: no se reescriben para incorporar cambios posteriores.
 
-Sanctum, sesiones, CSRF, cookies y plan obligatorio de endurecimiento.
+### Historial
 
-### PRUEBAS_Y_CALIDAD.md
+`HISTORIAL_IMPLEMENTACION.md`
 
-Estrategia TDD, suites, aislamiento y criterios de cierre.
+Resume hitos publicados.
 
-### DECISIONES_TECNICAS.md
+## 3. Jerarquía para evitar conflictos
 
-Registro de decisiones vigentes y su estado.
+Antes de programar se debe consultar:
 
-### HISTORIAL_IMPLEMENTACION.md
+1. decisión explícita más reciente aprobada;
+2. `DECISIONES_TECNICAS.md`;
+3. documento vivo del dominio afectado;
+4. `ESTADO_SIGA.md`;
+5. código, migraciones y pruebas de `main`;
+6. checkpoints e historial para contexto.
 
-Hitos técnicos ya publicados.
+Código, migraciones y pruebas demuestran lo que está implementado.
 
-## 3. Checkpoints
+Los documentos vivos definen lo que debe gobernar el diseño vigente.
 
-Checkpoints relevantes:
-
-- `CHECKPOINT_USUARIOS_ROLES_2026-10-06.md`;
-- `CHECKPOINT_MATRIZ_ROLES_FASE1_2026-10-06.md`;
-- `CHECKPOINT_AUTORIZACION_PERSONA_2026-10-07.md`;
-- `CHECKPOINT_SEGURIDAD_PERFILES_2026-10-08.md`.
-
-Los checkpoints congelan decisiones de una fecha concreta y no sustituyen al estado vivo.
+Si existe una contradicción entre ambos, no se debe continuar ampliando esa parte hasta reconciliar la diferencia.
 
 ## 4. Estado general
 
@@ -74,7 +72,9 @@ Actualmente están publicados:
 - efectos ALLOW/DENY;
 - protección de API Persona;
 - catálogo y relaciones de perfiles;
-- asignación y perfil predeterminado.
+- asignación de perfiles;
+- desasignación de perfiles;
+- perfil predeterminado.
 
 Frontend Angular sigue pendiente.
 
@@ -96,15 +96,24 @@ incluyendo:
 - MFA;
 - Passkeys/WebAuthn.
 
-## 6. Trazabilidad
+## 6. Checkpoints vigentes como evidencia histórica
+
+- `CHECKPOINT_USUARIOS_ROLES_2026-10-06.md`;
+- `CHECKPOINT_MATRIZ_ROLES_FASE1_2026-10-06.md`;
+- `CHECKPOINT_AUTORIZACION_PERSONA_2026-10-07.md`;
+- `CHECKPOINT_SEGURIDAD_PERFILES_2026-10-08.md`.
+
+Un checkpoint puede quedar desactualizado por diseño respecto del estado actual; eso no es un error si existe documentación viva posterior que registre el cambio.
+
+## 7. Trazabilidad
 
 Toda funcionalidad relevante debe seguir:
 
 `necesidad -> requisito -> diseño -> implementación -> prueba -> evidencia -> aceptación`
 
-## 7. Mantenimiento
+## 8. Mantenimiento
 
-Actualizar documentación cuando:
+Actualizar documentación viva cuando:
 
 - cierre un bloque relevante;
 - cambie una decisión;
@@ -115,15 +124,19 @@ Actualizar documentación cuando:
 
 No documentar trabajo local como terminado.
 
-## 8. Orden recomendado de lectura
+## 9. Gobierno de Git para documentación
 
-1. `ESTADO_SIGA.md`
-2. `ARQUITECTURA_TECNICA.md`
-3. `BASE_DATOS.md`
-4. `PERSONA.md`
-5. `AUTENTICACION_SEGURIDAD.md`
-6. `AUDITORIA.md`
-7. `PRUEBAS_Y_CALIDAD.md`
-8. `DECISIONES_TECNICAS.md`
-9. `HISTORIAL_IMPLEMENTACION.md`
-10. checkpoint más reciente
+- documentos técnicos: `main/docs`;
+- no crear ramas ni Pull Requests sin autorización explícita previa;
+- cambios documentales aprobados pueden integrarse directamente a `main`;
+- verificar el commit remoto después de publicar.
+
+## 10. Orden recomendado de lectura
+
+1. `DECISIONES_TECNICAS.md`
+2. `ESTADO_SIGA.md`
+3. documento vivo del dominio afectado
+4. `ARQUITECTURA_TECNICA.md`
+5. `PRUEBAS_Y_CALIDAD.md`
+6. checkpoint relacionado
+7. `HISTORIAL_IMPLEMENTACION.md`
