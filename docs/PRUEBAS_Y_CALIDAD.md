@@ -57,7 +57,8 @@ Valida reglas con PostgreSQL real mediante transacciones reversibles.
 - perfiles;
 - perfil predeterminado;
 - asignación y desasignación de perfiles;
-- rate limiting de login.
+- rate limiting de login;
+- configuración de seguridad de sesión/cookies.
 
 ## 3. Entorno funcional
 
@@ -100,18 +101,25 @@ y debe verificarse explícitamente antes de ejecutar migraciones.
 
 ## 6. Seguridad
 
-Control de seguridad con prueba funcional ya implementado:
+Controles de seguridad con prueba funcional ya implementados:
 
 - rate limiting de login:
   - cinco fallos permitidos por correo normalizado + IP;
   - siguiente intento bloqueado con HTTP 429;
-  - login correcto limpia intentos anteriores.
+  - login correcto limpia intentos anteriores;
+- seguridad de sesión/cookies:
+  - timeout de inactividad de 30 minutos;
+  - datos de sesión cifrados;
+  - `HttpOnly=true`;
+  - `SameSite=Lax`;
+  - producción rechaza una configuración con `session.secure !== true`;
+  - producción acepta `session.secure=true`.
 
 Deben añadirse pruebas específicas para los controles preproducción pendientes:
 
-- flags de cookies;
-- timeouts;
-- revocación de sesiones;
+- timeout absoluto;
+- revocación y administración de sesiones;
+- reautenticación para operaciones sensibles;
 - headers defensivos;
 - auditoría de login y throttling;
 - MFA;
