@@ -47,13 +47,16 @@ Se incorporaron:
 - timeout de inactividad de sesión de 30 minutos;
 - cifrado de datos de sesión;
 - política de cookie `HttpOnly` + `SameSite=Lax`;
-- salvaguarda que exige `SESSION_SECURE_COOKIE=true` en producción.
+- salvaguarda que exige `SESSION_SECURE_COOKIE=true` en producción;
+- timeout absoluto de sesión de 8 horas con marca de inicio autenticado y expiración HTTP 401.
 
 Commits relevantes:
 
 `215eab0 feat: limitar intentos de inicio de sesion`
 
 `d3acd0e feat: endurecer configuracion de sesiones`
+
+`bee9ca1 feat: agregar timeout absoluto de sesion`
 
 ## 5. Roles y permisos
 
@@ -117,13 +120,14 @@ Dentro de este endurecimiento ya se publicó:
 - timeout de inactividad de 30 minutos;
 - cifrado de sesión;
 - `HttpOnly` y `SameSite=Lax`;
-- validación de arranque que exige cookie `Secure` en producción.
+- validación de arranque que exige cookie `Secure` en producción;
+- timeout absoluto de sesión de 8 horas;
+- invalidación de la sesión y respuesta HTTP 401 al alcanzar el límite absoluto.
 
 Permanecen como requisitos preproducción:
 
 - despliegue HTTPS/HSTS;
 - CSP/headers;
-- timeout absoluto;
 - revocación/gestión de sesiones;
 - reautenticación sensible;
 - auditoría de seguridad;
@@ -148,7 +152,7 @@ A partir del 8 de octubre:
 
 ## 9. Próximo bloque
 
-Después de cerrar gestión básica de perfiles, rate limiting y endurecimiento básico de sesión/cookies, el siguiente bloque recomendado es el timeout absoluto y la gestión/revocación de sesiones.
+Después de cerrar gestión básica de perfiles, rate limiting, endurecimiento de sesión/cookies y timeout absoluto de 8 horas, el siguiente bloque recomendado es la gestión/revocación de sesiones.
 
 ## 10. Regla de actualización
 
