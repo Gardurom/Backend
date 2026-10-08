@@ -1,82 +1,158 @@
 # SIGA — Base de datos
 
-## 1. Propósito
+Última actualización: 2026-10-08
 
-Este documento describe la arquitectura de base de datos actualmente implementada para el Sistema Integral de Gestión Académica (SIGA).
-
-Su contenido se basa en las migraciones existentes en el repositorio y documenta:
-
-- motor de base de datos;
-- bases utilizadas;
-- esquemas;
-- roles;
-- tablas;
-- claves;
-- relaciones;
-- restricciones;
-- índices;
-- secuencias;
-- funciones;
-- permisos;
-- principios de integridad;
-- mecanismos de mínimo privilegio.
-
-La documentación debe mantenerse alineada con las migraciones y las pruebas de instalación.
-
-## 2. Tecnología
-
-Motor principal:
+## 1. Plataforma
 
 - PostgreSQL 18.4.
+- Base principal: `siga`.
+- Base de pruebas: `siga_installation_test`.
+- PostGIS habilitado.
 
-Extensión geoespacial disponible:
+## 2. Roles
 
-- PostGIS.
+- `siga_owner`: propietario, NOLOGIN.
+- `siga_migrator`: LOGIN, ejecuta migraciones y puede asumir owner.
+- `siga_app`: LOGIN, mínimo privilegio.
+- `siga_readonly`: lectura.
+- `siga_geoserver`: acceso específico de GeoServer.
 
-Base principal:
-
-`SIGA`
-
-Nombre efectivo:
-
-`siga`
-
-Base utilizada para pruebas de instalación y funcionales:
-
-`siga_installation_test`
-
-## 3. Principios de diseño
-
-La base de datos de SIGA mantiene actualmente los siguientes principios:
-
-- separación de objetos mediante esquemas;
-- propiedad estructural separada de la ejecución de aplicación;
-- mínimo privilegio;
-- integridad reforzada mediante PostgreSQL;
-- uso de claves foráneas;
-- restricciones `CHECK`;
-- generación de identificadores en base de datos cuando corresponde;
-- transacciones;
-- baja lógica en lugar de eliminación física de Persona;
-- auditoría separada;
-- permisos explícitos;
-- uso de funciones controladas para operaciones internas sensibles.
-
-## 4. Roles PostgreSQL
-
-### 4.1 `siga_owner`
-
-Rol propietario de objetos.
-
-Características confirmadas:
-
-- `LOGIN=false`;
-- propietario de la base y de objetos estructurales;
-- no es utilizado directamente por Laravel durante operación normal.
-
-Las migraciones estructurales utilizan:
+Las migraciones estructurales usan:
 
 ```text
 SET ROLE siga_owner
 ...
 RESET ROLE
+```
+
+## 3. Esquemas
+
+`institutional`:
+
+- `countries`;
+- `territories`;
+- `persons`.
+
+`system`:
+
+- `users`;
+- `password_reset_tokens`;
+- `sessions`;
+- `cache`;
+- `cache_locks`;
+- `jobs`;
+- `job_batches`;
+- `failed_jobs`;
+- `counters`;
+- `activities`;
+- `roles`;
+- `user_roles`;
+- `permissions`;
+- `role_permissions`;
+- `profiles`;
+- `user_profiles`.
+
+## 4. Persona
+
+Clave primaria:
+
+`id_persona uuid default uuidv7()`
+
+Identificadores:
+
+- CURP nullable/unique;
+- RFC nullable/unique;
+- expediente automático/unique.
+
+Dominios principales:
+
+- sexo: `MASCULINO | FEMENINO | NULL`;
+- estado civil: `SOLTERO | CASADO | NULL`;
+- estatus: `ACTIVO | INACTIVO | SUSPENDIDO | BAJA`.
+
+`BAJA` requiere `fecha_baja` y la fecha no puede ser anterior a `fecha_alta`.
+
+## 5. Auditoría
+
+`system.activities`:
+
+- PK `id_actividad`;
+- FK `id_usuario`;
+- entidad/id de entidad;
+- acción;
+- JSONB de antes/después/campos modificados;
+- fecha.
+
+`siga_app` tiene SELECT/INSERT, no UPDATE/DELETE.
+
+## 6. Usuarios y Persona
+
+`system.users` puede referenciar una Persona mediante UUID.
+
+La relación es 1:0..1 desde Persona hacia User.
+
+El correo de acceso tiene integridad de unicidad normalizada.
+
+## 7. Roles
+
+`system.roles` es catálogo de solo lectura para la aplicación.
+
+`system.user_roles` materializa User N:M Role.
+
+## 8. Permisos
+
+`system.permissions` es catálogo.
+
+`system.role_permissions` materializa Role N:M Permission.
+
+Columna:
+
+```text
+effect varchar(5) NOT NULL
+CHECK effect IN ('ALLOW', 'DENY')
+```
+
+No existe default implícito para `effect`.
+
+## 9. Perfiles
+
+`system.profiles` es catálogo de solo lectura.
+
+`system.user_profiles`:
+
+- `user_id`;
+- `profile_id`;
+- `is_default boolean NOT NULL DEFAULT false`;
+- timestamps;
+- PK compuesta;
+- FKs con cascade on delete.
+
+Índice:
+
+```text
+UNIQUE (user_id) WHERE is_default
+```
+
+Esto permite como máximo un perfil predeterminado por usuario.
+
+## 10. Secuencias y funciones
+
+La aplicación puede usar las secuencias necesarias, pero no reiniciarlas.
+
+Función principal:
+
+`system.next_expediente_number()`
+
+La función y las secuencias se prueban con la suite Installation.
+
+## 11. Regla de mínimo privilegio
+
+Nunca otorgar permisos de propietario a `siga_app`.
+
+Todo nuevo objeto debe definir explícitamente:
+
+- propietario;
+- privilegios PUBLIC;
+- privilegios de `siga_app`;
+- secuencias asociadas;
+- pruebas de permisos.

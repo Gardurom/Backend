@@ -1,39 +1,108 @@
 # SIGA — Historial de implementación
 
+Última actualización: 2026-10-08
+
 ## 1. Propósito
 
-Este documento registra cronológicamente la evolución técnica del backend del Sistema Integral de Gestión Académica (SIGA).
+Este archivo resume hitos técnicos. Git sigue siendo la fuente primaria de detalle.
 
-Su objetivo es conservar trazabilidad entre:
+## 2. Infraestructura inicial
 
-- decisiones de implementación;
-- estructura de base de datos;
-- pruebas;
-- funcionalidades;
-- seguridad;
-- documentación;
-- commits registrados en Git.
+Se configuraron:
 
-Este documento no sustituye el historial Git.
+- PostgreSQL/PostGIS;
+- roles de mínimo privilegio;
+- esquemas `institutional` y `system`;
+- GeoServer;
+- respaldo integral de base;
+- Laravel backend.
 
-Su función es explicar qué incorporó cada etapa y cómo evolucionó la arquitectura.
+## 3. Núcleo Persona
 
-## 2. Fuente de verdad
+Se incorporaron:
 
-La fuente primaria de este historial es el repositorio:
+- países y territorios;
+- contador/función de expediente;
+- `institutional.persons`;
+- reglas de dominio e integridad;
+- acciones de registro, actualización, baja y reingreso;
+- API autenticada;
+- auditoría transaccional.
 
-`Gardurom/Backend`
+## 4. Usuarios y autenticación
 
-Rama:
+Se incorporaron:
 
-`main`
+- relación Persona↔User;
+- normalización de correo;
+- creación interna de usuarios;
+- Sanctum stateful;
+- CSRF;
+- login/logout;
+- sesiones en PostgreSQL.
 
-Repositorio:
+## 5. Roles y permisos
 
-`https://github.com/Gardurom/Backend`
+Hitos:
 
-El historial documentado en este archivo comprende el estado publicado hasta:
+- catálogo `system.roles`;
+- relación `system.user_roles`;
+- catálogo `system.permissions`;
+- relación `system.role_permissions`;
+- matriz inicial;
+- columna `effect`;
+- efectos explícitos `ALLOW | DENY`;
+- `PermissionResolver`;
+- middleware de permiso;
+- protección de todas las rutas Persona;
+- prueba end-to-end de precedencia DENY.
+
+Checkpoint asociado:
+
+`CHECKPOINT_AUTORIZACION_PERSONA_2026-10-07.md`
+
+## 6. Perfiles
+
+Hitos publicados:
+
+- `system.profiles`;
+- `system.user_profiles`;
+- índice de un solo perfil predeterminado por usuario;
+- modelos Eloquent;
+- catálogo inicial;
+- `SetDefaultProfile`;
+- `AssignProfile`.
+
+Commit de referencia del estado publicado:
 
 ```text
-d432f75
-docs: agregar estado tecnico de SIGA
+b4131ee
+feat: asignar perfiles a usuarios
+```
+
+## 7. Seguridad — decisión del 8 de octubre
+
+Se conserva Sanctum SPA con sesión/cookies como arquitectura principal.
+
+Se elevan a requisitos preproducción:
+
+- HTTPS/HSTS;
+- Secure cookies;
+- CSP/headers;
+- rate limiting;
+- timeouts/revocación de sesión;
+- auditoría de seguridad;
+- MFA;
+- Passkeys/WebAuthn.
+
+La decisión anterior de diferir Passkeys/WebAuthn como mejora posterior queda reemplazada.
+
+Checkpoint:
+
+`CHECKPOINT_SEGURIDAD_PERFILES_2026-10-08.md`
+
+## 8. Regla de actualización
+
+Agregar aquí solo hitos relevantes ya publicados.
+
+No documentar como terminado un cambio que permanezca únicamente local.

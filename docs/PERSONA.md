@@ -1,115 +1,132 @@
 # SIGA — Persona
 
+Última actualización: 2026-10-08
+
 ## 1. Propósito
 
-Este documento describe el núcleo de identidad Persona actualmente implementado en el Sistema Integral de Gestión Académica (SIGA).
+Persona es el núcleo de identidad institucional de SIGA.
 
-Documenta:
+No existe un borrador canónico separado: se registra una Persona únicamente cuando la operación cumple las reglas vigentes.
 
-- representación persistente;
-- modelo Eloquent;
-- campos modificables;
-- generación de identidad;
-- registro;
-- actualización;
-- baja;
-- reingreso;
-- estados;
-- auditoría;
-- comportamiento transaccional;
-- reglas de integridad;
-- decisiones funcionales relevantes;
-- límites actuales de implementación.
-
-La fuente principal para este documento está formada por:
-
-- la migración de `institutional.persons`;
-- `App\Models\Person`;
-- las acciones de aplicación de Persona;
-- las pruebas funcionales correspondientes.
-
-## 2. Concepto
-
-Persona representa el núcleo básico de identidad dentro de SIGA.
-
-Actualmente se almacena en:
+## 2. Tabla
 
 `institutional.persons`
 
-El registro de Persona constituye una identidad persistente dentro de la plataforma.
-
-No se implementa actualmente un estado de borrador.
-
-La creación efectiva ocurre cuando la operación de registro se completa correctamente.
-
-## 3. Identificador principal
-
 Clave primaria:
 
-`id_persona`
-
-Tipo:
-
-UUID
+`id_persona uuid`
 
 Generación:
 
 `uuidv7()`
 
-El identificador:
+## 3. Campos actuales principales
 
-- no es proporcionado por el cliente;
-- es generado por PostgreSQL;
-- no es modificable mediante el modelo;
-- se conserva durante baja y reingreso.
+- `curp`;
+- `rfc`;
+- `num_expediente`;
+- `nombres`;
+- `apellido_paterno`;
+- `apellido_materno`;
+- `fecha_nacimiento`;
+- `sexo`;
+- `estado_civil`;
+- `correo_institucional`;
+- `correo_personal`;
+- `id_pais_origen`;
+- `id_pais_nacimiento`;
+- `id_territorio_nacimiento`;
+- `fecha_alta`;
+- `fecha_baja`;
+- `estatus`;
+- timestamps.
 
-## 4. Número de expediente
+La fotografía se mantiene como necesidad funcional de archivos y su integración con LibreFS sigue pendiente; no existe como columna binaria en la tabla actual.
 
-Campo:
+## 4. Dominios
 
-`num_expediente`
+Sexo:
 
-Formato:
+- `MASCULINO`;
+- `FEMENINO`;
+- NULL.
 
-`YYYY-NNNNNNNN`
+Estado civil:
 
-Ejemplo conceptual:
+- `SOLTERO`;
+- `CASADO`;
+- NULL.
 
-`2026-00000001`
+Estatus:
 
-Se genera mediante:
+- `ACTIVO`;
+- `INACTIVO`;
+- `SUSPENDIDO`;
+- `BAJA`.
 
-`system.next_expediente_number()`
+Si `estatus=BAJA`, `fecha_baja` debe existir.
 
-El expediente:
+Si el estatus no es BAJA, `fecha_baja` debe ser NULL.
 
-- se genera automáticamente;
-- es único;
-- no es `fillable`;
-- no debe ser controlado por el cliente;
-- se conserva durante actualización, baja y reingreso.
+## 5. Integridad
 
-## 5. Modelo Eloquent
+- expediente único;
+- CURP único cuando existe;
+- RFC único cuando existe;
+- correo institucional único de forma normalizada;
+- territorio de nacimiento requiere país;
+- FKs de país/territorio;
+- fecha de nacimiento no futura;
+- fecha de baja no anterior a fecha de alta.
 
-Modelo:
+## 6. Acciones
 
-`App\Models\Person`
+- `RegisterPerson`;
+- `FindPerson`;
+- `UpdatePerson`;
+- `WithdrawPerson`;
+- `ReinstatePerson`.
 
-Tabla:
+Las operaciones de modificación registran auditoría cuando corresponde.
 
-`institutional.persons`
+## 7. API
 
-Clave primaria:
+- POST `/api/personas`;
+- GET `/api/personas/{id_persona}`;
+- PATCH `/api/personas/{id_persona}`;
+- POST `/api/personas/{id_persona}/baja`;
+- POST `/api/personas/{id_persona}/reingreso`.
 
-`id_persona`
+Todas las operaciones requieren:
 
-Configuración:
+- `auth:sanctum`;
+- permiso específico de Persona.
 
-```php
-protected $table = 'institutional.persons';
+## 8. Datos descartados
 
-protected $primaryKey = 'id_persona';
+No forman parte de Persona salvo nueva decisión formal:
 
-public $incrementing = false;
+- huella dactilar;
+- firma autógrafa digitalizada;
+- campo género.
 
-protected $keyType = 'string';
+## 9. Usuario
+
+Persona puede tener como máximo un User asociado.
+
+El usuario es la identidad de acceso; Persona es la identidad institucional.
+
+## 10. Pruebas
+
+Se prueban:
+
+- dominios;
+- unicidad;
+- fechas;
+- ciclo de vida;
+- transacciones;
+- rollback;
+- API;
+- autorización;
+- auditoría;
+- relación con User.

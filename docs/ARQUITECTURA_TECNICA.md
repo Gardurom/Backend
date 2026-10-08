@@ -1,102 +1,153 @@
 # SIGA — Arquitectura técnica
 
-## 1. Propósito
+Última actualización: 2026-10-08
 
-Este documento describe la arquitectura técnica actual y prevista del Sistema Integral de Gestión Académica (SIGA).
+## 1. Principios
 
-La arquitectura se documenta separando:
+SIGA se construye con:
 
-- componentes implementados y validados;
-- componentes configurados;
-- componentes previstos;
-- responsabilidades de cada capa;
-- mecanismos de integración;
-- principios de seguridad y trazabilidad.
+- mínimo privilegio;
+- separación de responsabilidades;
+- defensa en profundidad;
+- TDD;
+- trazabilidad;
+- PostgreSQL como fuente de integridad;
+- autorización siempre en backend.
 
-Este documento debe reflejar el estado real del repositorio y de la infraestructura confirmada.
-
-## 2. Estado de la arquitectura
-
-### Implementado y validado
-
-Actualmente SIGA cuenta con:
-
-- backend Laravel;
-- PostgreSQL como sistema de gestión de base de datos;
-- separación lógica mediante esquemas PostgreSQL;
-- roles especializados de base de datos;
-- núcleo de Persona;
-- auditoría transaccional;
-- autenticación mediante Laravel Sanctum;
-- sesiones almacenadas en PostgreSQL;
-- protección CSRF;
-- configuración CORS para futura SPA;
-- pruebas Unit, Feature, Installation y Functional;
-- GeoServer configurado para acceso geoespacial.
-
-### Previsto
-
-Todavía están pendientes:
-
-- frontend Angular;
-- integración Leaflet en frontend;
-- API HTTP completa de Persona;
-- módulos funcionales posteriores;
-- integración definitiva con almacenamiento de archivos;
-- despliegue en servidor productivo;
-- Passkeys/WebAuthn.
-
-## 3. Vista general
-
-La arquitectura prevista de SIGA es:
+## 2. Componentes
 
 ```text
-┌─────────────────────────────────────┐
-│            Usuario SIGA             │
-└──────────────────┬──────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────┐
-│          Frontend Angular           │
-│             [PREVISTO]              │
-│                                     │
-│  Interfaz de usuario                │
-│  Leaflet para cartografía           │
-└──────────────────┬──────────────────┘
-                   │
-                   │ HTTPS
-                   │ sesión/cookie
-                   │ CSRF
-                   ▼
-┌─────────────────────────────────────┐
-│          Backend Laravel            │
-│          [IMPLEMENTADO]             │
-│                                     │
-│  API HTTP                           │
-│  Sanctum                            │
-│  autenticación                      │
-│  validación                         │
-│  acciones de aplicación             │
-│  transacciones                      │
-│  auditoría                          │
-└───────────┬───────────────┬─────────┘
-            │               │
-            │               │
-            ▼               ▼
-┌──────────────────────┐  ┌──────────────────────┐
-│      PostgreSQL      │  │      GeoServer       │
-│    [IMPLEMENTADO]    │  │    [CONFIGURADO]     │
-│                      │  │                      │
-│ system               │  │ Workspace: siga      │
-│ institutional        │  │ PostGIS datastore    │
-│ PostGIS              │  │                      │
-└──────────────────────┘  └──────────────────────┘
-            │
-            ▼
-┌─────────────────────────────────────┐
-│       Almacenamiento de archivos    │
-│             [PREVISTO]              │
-│                                     │
-│ libreFS para archivos asociados     │
-│ como fotografía de Persona          │
-└─────────────────────────────────────┘
+Angular SPA (pendiente)
+      |
+      | HTTPS + CSRF + cookie de sesión
+      v
+Laravel 13 + Sanctum
+      |
+      +--> autenticación
+      +--> autorización
+      +--> acciones de dominio
+      +--> auditoría
+      |
+      v
+PostgreSQL 18
+      |
+      +--> institutional
+      +--> system
+      +--> PostGIS
+      |
+      +--> GeoServer
+
+LibreFS
+  |
+  +--> archivos controlados, por integrar funcionalmente
+```
+
+## 3. Capa web
+
+Frontend previsto:
+
+- Angular;
+- Leaflet;
+- misma plataforma lógica que el backend;
+- autenticación SPA stateful con Sanctum.
+
+El frontend nunca es la autoridad final de permisos.
+
+## 4. Backend
+
+Responsabilidades:
+
+- validar solicitudes;
+- autenticar;
+- autorizar;
+- ejecutar acciones transaccionales;
+- auditar;
+- acceder a PostgreSQL con `siga_app`.
+
+Los controladores HTTP deben mantenerse delgados y delegar reglas de negocio en acciones/servicios.
+
+## 5. Identidad
+
+```text
+Persona
+   |
+   +-- 0..1 User
+           |
+           +-- N:M Role
+           |       |
+           |       +-- N:M Permission
+           |
+           +-- N:M Profile
+```
+
+Roles/Permisos son seguridad.
+
+Perfiles son UX.
+
+## 6. Autorización
+
+`PermissionResolver` implementa:
+
+- DENY prevalece;
+- ALLOW en ausencia de DENY;
+- ausencia de regla = acceso denegado.
+
+Las rutas protegidas utilizan:
+
+```text
+auth:sanctum
+siga.permission:<codigo>
+```
+
+## 7. Datos
+
+Esquemas:
+
+- `institutional`: entidades institucionales;
+- `system`: infraestructura, autenticación, auditoría, autorización y perfiles;
+- `public`: objetos requeridos por PostGIS.
+
+El propietario de objetos es `siga_owner`.
+
+La aplicación opera como `siga_app`.
+
+## 8. Geoespacial
+
+PostGIS y GeoServer ya están preparados.
+
+La integración funcional Angular + Leaflet + GeoServer sigue pendiente.
+
+## 9. Archivos
+
+LibreFS está previsto para archivos como fotografía de Persona.
+
+La integración funcional con módulos sigue pendiente y debe mantener controles de autorización y trazabilidad.
+
+## 10. Seguridad
+
+Controles ya implementados:
+
+- Sanctum stateful;
+- CSRF;
+- sesión regenerada al login;
+- invalidación al logout;
+- mínimo privilegio DB;
+- autorización central;
+- default-deny.
+
+Controles obligatorios preproducción:
+
+- HTTPS/HSTS;
+- Secure cookies;
+- CSP/headers defensivos;
+- rate limiting;
+- sesiones con timeout y revocación;
+- auditoría de eventos de autenticación;
+- MFA;
+- Passkeys/WebAuthn.
+
+## 11. Evolución
+
+No introducir microservicios, OAuth2, PAT, JWT u otros mecanismos sin un requisito real y aprobación de diseño.
+
+La prioridad es mantener una arquitectura simple, verificable y segura.

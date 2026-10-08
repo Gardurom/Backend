@@ -1,40 +1,106 @@
 # SIGA — Auditoría
 
+Última actualización: 2026-10-08
+
 ## 1. Propósito
 
-Este documento describe el mecanismo de auditoría actualmente implementado en el Sistema Integral de Gestión Académica (SIGA).
+SIGA conserva evidencia de operaciones relevantes ejecutadas por usuarios autenticados.
 
-La auditoría tiene como objetivo conservar evidencia de las operaciones relevantes realizadas sobre las entidades del sistema, identificando:
-
-- usuario responsable;
-- entidad afectada;
-- registro afectado;
-- acción realizada;
-- valores anteriores;
-- valores nuevos;
-- campos modificados;
-- fecha de la actividad.
-
-La implementación actual utiliza:
+## 2. Tabla actual
 
 `system.activities`
 
-## 2. Principio general
+Campos:
 
-SIGA separa la información operativa de la evidencia de auditoría.
+- `id_actividad`;
+- `id_usuario`;
+- `entidad`;
+- `id_entidad`;
+- `accion`;
+- `datos_anteriores`;
+- `datos_nuevos`;
+- `campos_modificados`;
+- `fecha_actividad`.
 
-Ejemplo actual:
+No existe campo `motivo`.
 
-```text
-institutional.persons
-        │
-        │ operación
-        ▼
-acción de aplicación
-        │
-        ├── modifica Persona
-        │
-        └── registra evidencia
-                 │
-                 ▼
-        system.activities
+## 3. Dominio actual de acciones
+
+Actualmente:
+
+- `CREACION`;
+- `ACTUALIZACION`;
+- `BAJA`;
+- `REINGRESO`.
+
+Estas acciones cubren el ciclo implementado de Persona.
+
+## 4. Inmutabilidad
+
+`siga_app` puede:
+
+- SELECT;
+- INSERT.
+
+No puede:
+
+- UPDATE;
+- DELETE.
+
+La auditoría se diseña como evidencia, no como información editable.
+
+## 5. Usuario ejecutor
+
+`id_usuario` proviene del usuario autenticado por el servidor.
+
+El cliente no debe poder suplantar el usuario auditado enviando un identificador arbitrario.
+
+## 6. Transacciones
+
+Cuando una acción de negocio y su auditoría forman una sola operación, deben ejecutarse en la misma transacción.
+
+Si falla la auditoría, la modificación de negocio se revierte.
+
+## 7. Seguridad futura
+
+Se ha aprobado auditar también eventos de autenticación y administración de seguridad, por ejemplo:
+
+- login correcto/fallido;
+- logout;
+- cambio/restablecimiento de contraseña;
+- MFA;
+- Passkeys;
+- revocación de sesiones;
+- cambios de roles;
+- cambios de perfiles;
+- cambio de perfil predeterminado;
+- throttling.
+
+**Estado:** PLANIFICADO.
+
+La tabla actual no admite todavía esos valores en `accion`. No deben insertarse hasta diseñar una ampliación explícita con migración y pruebas.
+
+## 8. Datos prohibidos en auditoría
+
+Nunca registrar:
+
+- contraseñas;
+- hashes reutilizables como credenciales;
+- cookies;
+- session IDs completos;
+- secretos MFA/TOTP;
+- claves privadas;
+- tokens Bearer;
+- tokens CSRF.
+
+## 9. Trazabilidad
+
+Cada nueva clase de evento auditable debe definir:
+
+- evento;
+- actor;
+- entidad;
+- datos permitidos;
+- política de retención;
+- pruebas;
+- permisos.
