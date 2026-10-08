@@ -74,7 +74,8 @@ Actualmente están publicados:
 - catálogo y relaciones de perfiles;
 - asignación de perfiles;
 - desasignación de perfiles;
-- perfil predeterminado.
+- perfil predeterminado;
+- rate limiting específico del login.
 
 Frontend Angular sigue pendiente.
 
@@ -86,12 +87,13 @@ Antes de producción son obligatorios los controles descritos en:
 
 `AUTENTICACION_SEGURIDAD.md`
 
-incluyendo:
+El rate limiting específico del login ya está implementado y probado.
+
+Permanecen como controles obligatorios antes de producción:
 
 - HTTPS/HSTS;
-- rate limiting;
 - sesiones endurecidas;
-- auditoría de autenticación;
+- auditoría de autenticación y throttling;
 - headers defensivos;
 - MFA;
 - Passkeys/WebAuthn.
