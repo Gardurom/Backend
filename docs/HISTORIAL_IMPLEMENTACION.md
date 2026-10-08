@@ -41,7 +41,13 @@ Se incorporaron:
 - Sanctum stateful;
 - CSRF;
 - login/logout;
-- sesiones en PostgreSQL.
+- sesiones en PostgreSQL;
+- rate limiting específico del login por correo normalizado + IP;
+- limpieza del contador tras autenticación correcta.
+
+Commit relevante:
+
+`215eab0 feat: limitar intentos de inicio de sesion`
 
 ## 5. Roles y permisos
 
@@ -97,12 +103,17 @@ Reglas consolidadas:
 
 Se conserva Sanctum SPA con sesión/cookies como arquitectura principal.
 
-Se elevan a requisitos preproducción:
+Dentro de este endurecimiento ya se publicó:
+
+- rate limiting del login con máximo de 5 fallos por correo normalizado + IP en 60 segundos;
+- respuesta HTTP 429 con `Retry-After`;
+- limpieza del bucket tras login correcto.
+
+Permanecen como requisitos preproducción:
 
 - HTTPS/HSTS;
 - Secure cookies;
 - CSP/headers;
-- rate limiting;
 - timeouts/revocación de sesión;
 - auditoría de seguridad;
 - MFA;
@@ -126,7 +137,7 @@ A partir del 8 de octubre:
 
 ## 9. Próximo bloque
 
-Después de cerrar gestión básica de perfiles, el siguiente bloque recomendado es el rate limiting específico del login.
+Después de cerrar gestión básica de perfiles y rate limiting del login, el siguiente bloque recomendado es el endurecimiento y las pruebas de sesión/cookies.
 
 ## 10. Regla de actualización
 
