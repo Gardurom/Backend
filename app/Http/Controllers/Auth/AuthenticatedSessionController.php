@@ -64,6 +64,11 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $request->session()->put(
+            'siga_authenticated_at',
+            now()->timestamp
+        );
+
         return response()->noContent();
     }
 
