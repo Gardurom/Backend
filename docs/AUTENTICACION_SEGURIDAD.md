@@ -61,14 +61,17 @@ Configuración versionada relevante:
 ```text
 SESSION_DRIVER=database
 SESSION_ENCRYPT=true
-SESSION_LIFETIME=120   # valor de desarrollo actual
+SESSION_LIFETIME=30
 ```
 
-En `config/session.php`:
+En `config/session.php` y la configuración de arranque:
 
-- `http_only=true` por defecto;
-- `same_site=lax` por defecto;
-- `secure` depende del entorno;
+- `http_only=true`;
+- `same_site=lax`;
+- `SESSION_LIFETIME=30`;
+- datos de sesión cifrados;
+- `secure` depende del entorno fuera de producción;
+- en `production`, la aplicación rechaza el arranque si `session.secure !== true`;
 - serialización `json`.
 
 ## 4. Separación autenticación/autorización
@@ -124,14 +127,19 @@ Agregar tokens sin necesidad aumenta la superficie de ataque y no se considera u
 
 ## 6. Cookies y HTTPS
 
-Requisitos de producción:
+**Controles implementados en aplicación/configuración:**
+
+- `SESSION_HTTP_ONLY=true` como política efectiva;
+- `SESSION_SAME_SITE=lax` como política inicial;
+- la aplicación exige `SESSION_SECURE_COOKIE=true` al arrancar en `production`;
+- pruebas funcionales verifican `HttpOnly`, `SameSite=Lax`, cifrado y la salvaguarda de `Secure`.
+
+**Requisitos operativos de producción todavía pendientes de despliegue/verificación:**
 
 - HTTPS obligatorio;
-- `SESSION_SECURE_COOKIE=true`;
-- `SESSION_HTTP_ONLY=true`;
-- `SESSION_SAME_SITE=lax` como política inicial;
 - HSTS;
 - dominio de cookie limitado al alcance mínimo necesario;
+- confirmar que las cookies emitidas se transportan únicamente sobre HTTPS;
 - nunca enviar sesión mediante HTTP plano.
 
 `SameSite=Strict` podrá evaluarse, pero no se adoptará automáticamente si rompe flujos legítimos de la SPA.
@@ -178,23 +186,31 @@ La auditoría de eventos de throttling y otros eventos sospechosos sigue planifi
 **Estado actual**
 
 - persistencia en PostgreSQL;
+- datos de sesión cifrados;
 - regeneración al autenticar;
-- invalidación al cerrar sesión.
+- invalidación al cerrar sesión;
+- timeout por inactividad de 30 minutos;
+- cookie `HttpOnly`;
+- política `SameSite=Lax`;
+- salvaguarda de `Secure` obligatoria al arrancar en producción.
+
+Evidencia:
+
+- prueba funcional: `SessionSecurityConfigurationTest`;
+- commit: `d3acd0e feat: endurecer configuracion de sesiones`.
 
 **Endurecimiento planificado**
 
-- timeout por inactividad;
 - timeout absoluto;
 - revocación de otras sesiones ante cambios críticos;
 - reautenticación para operaciones sensibles;
 - posibilidad de administrar sesiones activas.
 
-Valores iniciales de diseño:
+Valor inicial de diseño aún pendiente:
 
-- 30 minutos de inactividad;
 - 8 horas de duración absoluta.
 
-Estos valores no se consideran implementados hasta existir código/configuración y pruebas.
+El timeout absoluto y la revocación no se consideran implementados hasta existir código/configuración y pruebas.
 
 ## 10. MFA y Passkeys/WebAuthn
 
