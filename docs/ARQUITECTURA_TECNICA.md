@@ -131,6 +131,7 @@ Controles ya implementados:
 - CSRF;
 - sesión regenerada al login;
 - invalidación al logout;
+- rate limiting del login por correo normalizado + IP;
 - mínimo privilegio DB;
 - autorización central;
 - default-deny.
@@ -140,7 +141,6 @@ Controles obligatorios preproducción:
 - HTTPS/HSTS;
 - Secure cookies;
 - CSP/headers defensivos;
-- rate limiting;
 - sesiones con timeout y revocación;
 - auditoría de eventos de autenticación;
 - MFA;
