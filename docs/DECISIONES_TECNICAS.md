@@ -200,7 +200,11 @@ Controles ya implementados:
 - timeout de inactividad de sesión de 30 minutos;
 - datos de sesión cifrados;
 - cookie de sesión con `HttpOnly=true` y `SameSite=Lax`;
-- salvaguarda de arranque que exige `SESSION_SECURE_COOKIE=true` cuando `APP_ENV=production`.
+- salvaguarda de arranque que exige `SESSION_SECURE_COOKIE=true` cuando `APP_ENV=production`;
+- timeout absoluto de sesión de 8 horas;
+- el login registra `siga_authenticated_at` como inicio de la sesión absoluta;
+- al alcanzar 8 horas, la sesión se cierra, se invalida y la API responde HTTP 401;
+- sesiones existentes sin marca absoluta se inicializan de forma compatible en su primera petición con sesión.
 
 Evidencia publicada:
 
@@ -208,13 +212,14 @@ Evidencia publicada:
 
 `d3acd0e feat: endurecer configuracion de sesiones`
 
+`bee9ca1 feat: agregar timeout absoluto de sesion`
+
 Antes de producción permanecen requeridos:
 
 - HTTPS;
 - HSTS;
 - CSP;
 - headers defensivos;
-- timeout absoluto de sesión;
 - revocación y gestión de sesiones;
 - reautenticación para operaciones sensibles;
 - auditoría de eventos de autenticación, incluido throttling;
