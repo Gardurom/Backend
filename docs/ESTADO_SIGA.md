@@ -6,7 +6,7 @@ Este estado refleja únicamente lo publicado en GitHub `main`.
 
 Commit de referencia:
 
-`d3acd0e feat: endurecer configuracion de sesiones`
+`bee9ca1 feat: agregar timeout absoluto de sesion`
 
 ## 1. Plataforma
 
@@ -112,6 +112,9 @@ Implementado:
 - cookie de sesión `HttpOnly`;
 - política `SameSite=Lax`;
 - producción rechaza el arranque si `SESSION_SECURE_COOKIE` no es `true`;
+- timeout absoluto de sesión de 8 horas;
+- registro de `siga_authenticated_at` al autenticar;
+- expiración absoluta con logout, invalidación de sesión, regeneración CSRF y HTTP 401;
 - CORS con credenciales.
 
 No se usan PAT como mecanismo de la SPA.
@@ -215,7 +218,8 @@ Cobertura funcional relevante:
 - perfil predeterminado;
 - asignación y desasignación de perfiles;
 - rate limiting de login;
-- configuración segura de sesión/cookies.
+- configuración segura de sesión/cookies;
+- timeout absoluto de sesión de 8 horas.
 
 Controles de cierre:
 
@@ -235,13 +239,13 @@ Controles de hardening ya implementados:
 - timeout de inactividad de 30 minutos;
 - cifrado de sesión;
 - `HttpOnly` y `SameSite=Lax`;
-- salvaguarda de `Secure` obligatoria en producción.
+- salvaguarda de `Secure` obligatoria en producción;
+- timeout absoluto de sesión de 8 horas.
 
 Permanecen como requisitos preproducción:
 
 - despliegue HTTPS y HSTS;
 - CSP y headers defensivos;
-- timeout absoluto de sesión;
 - revocación y gestión de sesiones;
 - reautenticación para operaciones sensibles;
 - auditoría de seguridad;
@@ -252,9 +256,9 @@ Passkeys/WebAuthn no se considera una mejora opcional indefinida.
 
 ## 12. Próximo bloque recomendado
 
-Con la gestión básica de perfiles, el rate limiting y el endurecimiento básico de sesión/cookies cerrados, el siguiente bloque técnico recomendado es:
+Con la gestión básica de perfiles, el rate limiting, el endurecimiento de sesión/cookies y el timeout absoluto de 8 horas cerrados, el siguiente bloque técnico recomendado es:
 
-`timeout absoluto y gestión/revocación de sesiones`
+`gestión y revocación de sesiones`
 
 Después:
 
