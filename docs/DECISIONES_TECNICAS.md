@@ -190,27 +190,33 @@ Reglas:
 
 **Estado:** PARCIALMENTE IMPLEMENTADA
 
-Control ya implementado:
+Controles ya implementados:
 
 - rate limiting específico del login;
 - máximo de 5 intentos fallidos por correo normalizado + dirección IP;
 - ventana de 60 segundos;
 - sexto intento bloqueado con HTTP 429 y encabezado `Retry-After`;
-- un login correcto limpia los intentos fallidos previos del mismo bucket.
+- un login correcto limpia los intentos fallidos previos del mismo bucket;
+- timeout de inactividad de sesión de 30 minutos;
+- datos de sesión cifrados;
+- cookie de sesión con `HttpOnly=true` y `SameSite=Lax`;
+- salvaguarda de arranque que exige `SESSION_SECURE_COOKIE=true` cuando `APP_ENV=production`.
 
 Evidencia publicada:
 
 `215eab0 feat: limitar intentos de inicio de sesion`
 
+`d3acd0e feat: endurecer configuracion de sesiones`
+
 Antes de producción permanecen requeridos:
 
 - HTTPS;
-- cookie Secure;
 - HSTS;
 - CSP;
 - headers defensivos;
-- timeouts de sesión;
-- revocación de sesiones;
+- timeout absoluto de sesión;
+- revocación y gestión de sesiones;
+- reautenticación para operaciones sensibles;
 - auditoría de eventos de autenticación, incluido throttling;
 - MFA;
 - Passkeys/WebAuthn;
