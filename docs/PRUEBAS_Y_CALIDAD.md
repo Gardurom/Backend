@@ -58,7 +58,8 @@ Valida reglas con PostgreSQL real mediante transacciones reversibles.
 - perfil predeterminado;
 - asignación y desasignación de perfiles;
 - rate limiting de login;
-- configuración de seguridad de sesión/cookies.
+- configuración de seguridad de sesión/cookies;
+- timeout absoluto de sesión.
 
 ## 3. Entorno funcional
 
@@ -113,11 +114,17 @@ Controles de seguridad con prueba funcional ya implementados:
   - `HttpOnly=true`;
   - `SameSite=Lax`;
   - producción rechaza una configuración con `session.secure !== true`;
-  - producción acepta `session.secure=true`.
+  - producción acepta `session.secure=true`;
+- timeout absoluto de sesión:
+  - expira al alcanzar 8 horas;
+  - el login registra `siga_authenticated_at`;
+  - permanece válida justo antes de 8 horas;
+  - sesiones existentes sin marca absoluta inicializan la marca de forma compatible.
+
+La cobertura específica está en `SessionAbsoluteTimeoutTest` y fue publicada en `bee9ca1`.
 
 Deben añadirse pruebas específicas para los controles preproducción pendientes:
 
-- timeout absoluto;
 - revocación y administración de sesiones;
 - reautenticación para operaciones sensibles;
 - headers defensivos;
