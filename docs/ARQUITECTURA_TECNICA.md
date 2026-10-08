@@ -132,16 +132,21 @@ Controles ya implementados:
 - sesión regenerada al login;
 - invalidación al logout;
 - rate limiting del login por correo normalizado + IP;
+- timeout de inactividad de sesión de 30 minutos;
+- datos de sesión cifrados;
+- cookie `HttpOnly` y `SameSite=Lax`;
+- producción exige `Secure` para la cookie de sesión;
 - mínimo privilegio DB;
 - autorización central;
 - default-deny.
 
 Controles obligatorios preproducción:
 
-- HTTPS/HSTS;
-- Secure cookies;
+- despliegue HTTPS/HSTS;
 - CSP/headers defensivos;
-- sesiones con timeout y revocación;
+- timeout absoluto de sesión;
+- revocación y gestión de sesiones;
+- reautenticación para operaciones sensibles;
 - auditoría de eventos de autenticación;
 - MFA;
 - Passkeys/WebAuthn.
