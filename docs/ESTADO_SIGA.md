@@ -6,7 +6,7 @@ Este estado refleja únicamente lo publicado en GitHub `main`.
 
 Commit de referencia:
 
-`d58f461 feat: desasignar perfiles de usuarios`
+`215eab0 feat: limitar intentos de inicio de sesion`
 
 ## 1. Plataforma
 
@@ -100,6 +100,9 @@ Implementado:
 - CSRF;
 - login;
 - logout;
+- rate limiting de login: 5 intentos fallidos por correo normalizado + IP en 60 segundos;
+- bloqueo posterior con HTTP 429 y `Retry-After`;
+- limpieza del contador al autenticar correctamente;
 - regeneración de sesión;
 - invalidación al logout;
 - `auth:sanctum`;
@@ -206,7 +209,8 @@ Cobertura funcional relevante:
 - precedencia DENY;
 - Perfiles;
 - perfil predeterminado;
-- asignación y desasignación de perfiles.
+- asignación y desasignación de perfiles;
+- rate limiting de login.
 
 Controles de cierre:
 
@@ -220,9 +224,12 @@ Controles de cierre:
 
 La arquitectura de autenticación actual se conserva.
 
-Son requisitos preproducción:
+Control de hardening ya implementado:
 
-- rate limiting de login;
+- rate limiting de login.
+
+Permanecen como requisitos preproducción:
+
 - HTTPS/secure cookies;
 - HSTS;
 - CSP y headers defensivos;
@@ -236,18 +243,17 @@ Passkeys/WebAuthn no se considera una mejora opcional indefinida.
 
 ## 12. Próximo bloque recomendado
 
-Con la gestión básica de perfiles cerrada, el siguiente bloque técnico recomendado es:
+Con la gestión básica de perfiles y el rate limiting del login cerrados, el siguiente bloque técnico recomendado es:
 
-`rate limiting del login`
+`endurecimiento y pruebas de sesión/cookies`
 
 Después:
 
-1. endurecimiento y pruebas de sesión/cookies;
-2. gestión/revocación de sesiones;
-3. auditoría de autenticación;
-4. headers de seguridad;
-5. MFA/Passkeys antes de producción;
-6. iniciar frontend Angular e integración SPA.
+1. gestión/revocación de sesiones;
+2. auditoría de autenticación;
+3. headers de seguridad;
+4. MFA/Passkeys antes de producción;
+5. iniciar frontend Angular e integración SPA.
 
 ## 13. Regla documental
 
