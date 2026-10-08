@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +20,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        if (
+            $this->app->environment('production')
+            && config('session.secure') !== true
+        ) {
+            throw new RuntimeException(
+                'SIGA requiere SESSION_SECURE_COOKIE=true en producción.'
+            );
+        }
     }
 }
