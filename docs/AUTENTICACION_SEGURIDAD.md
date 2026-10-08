@@ -19,7 +19,9 @@ SPA SIGA
   |
   +--> POST /login
   |       |
+  |       +--> RateLimiter (5 fallos / 60 s / correo+IP)
   |       +--> Auth::attempt()
+  |       +--> login correcto => limpiar contador
   |       +--> session()->regenerate()
   |
   +--> cookie de sesión
@@ -44,6 +46,10 @@ Componentes confirmados en código:
 - CORS con `supports_credentials=true`.
 - orígenes CORS definidos por variable de entorno.
 - normalización del correo de acceso.
+- rate limiting específico del login por correo normalizado + dirección IP.
+- máximo de 5 intentos fallidos dentro de una ventana de 60 segundos.
+- bloqueo del siguiente intento con HTTP 429 y encabezado `Retry-After`.
+- limpieza del contador después de un login correcto.
 - regeneración de sesión después de login.
 - invalidación de sesión al logout.
 - regeneración del token CSRF al logout.
@@ -144,19 +150,28 @@ No deben deshabilitarse las defensas CSRF para simplificar el frontend.
 
 ## 8. Rate limiting de autenticación
 
-**Estado: PLANIFICADO / OBLIGATORIO ANTES DE PRODUCCIÓN**
+**Estado: IMPLEMENTADO**
 
-La ruta de login aún no cuenta con un limitador específico versionado en el repositorio.
+La ruta `POST /login` cuenta con un limitador específico versionado.
 
-Debe incorporarse un control basado al menos en:
+Reglas implementadas:
 
-- correo normalizado;
-- dirección IP;
-- ventana temporal;
-- respuesta uniforme;
-- registro de eventos sospechosos.
+- la clave del bucket combina correo normalizado y dirección IP;
+- se permiten hasta 5 intentos de autenticación fallidos;
+- la ventana de expiración es de 60 segundos;
+- el siguiente intento cuando el bucket está agotado responde HTTP 429;
+- la respuesta 429 incluye `Retry-After`;
+- un login correcto ejecuta la limpieza del bucket;
+- errores de validación previos a `Auth::attempt()` no incrementan el contador;
+- no existe bloqueo permanente de la cuenta.
 
-Debe evitarse un bloqueo permanente fácil de explotar como denegación de servicio contra cuentas legítimas.
+Evidencia:
+
+- implementación: `AuthenticatedSessionController`;
+- prueba funcional: `LoginRateLimitTest`;
+- commit: `215eab0 feat: limitar intentos de inicio de sesion`.
+
+La auditoría de eventos de throttling y otros eventos sospechosos sigue planificada en la sección de auditoría de autenticación.
 
 ## 9. Sesiones
 
