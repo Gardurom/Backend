@@ -188,19 +188,30 @@ Reglas:
 
 ## 14. DT-011 — Endurecimiento obligatorio de autenticación
 
-**Estado:** PLANIFICADA
+**Estado:** PARCIALMENTE IMPLEMENTADA
 
-Antes de producción se requieren:
+Control ya implementado:
+
+- rate limiting específico del login;
+- máximo de 5 intentos fallidos por correo normalizado + dirección IP;
+- ventana de 60 segundos;
+- sexto intento bloqueado con HTTP 429 y encabezado `Retry-After`;
+- un login correcto limpia los intentos fallidos previos del mismo bucket.
+
+Evidencia publicada:
+
+`215eab0 feat: limitar intentos de inicio de sesion`
+
+Antes de producción permanecen requeridos:
 
 - HTTPS;
 - cookie Secure;
 - HSTS;
 - CSP;
 - headers defensivos;
-- rate limiting de login;
 - timeouts de sesión;
 - revocación de sesiones;
-- auditoría de eventos de autenticación;
+- auditoría de eventos de autenticación, incluido throttling;
 - MFA;
 - Passkeys/WebAuthn;
 - configuración de producción sin debug.
