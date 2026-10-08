@@ -75,7 +75,8 @@ Actualmente están publicados:
 - asignación de perfiles;
 - desasignación de perfiles;
 - perfil predeterminado;
-- rate limiting específico del login.
+- rate limiting específico del login;
+- endurecimiento básico de sesión/cookies.
 
 Frontend Angular sigue pendiente.
 
@@ -87,12 +88,19 @@ Antes de producción son obligatorios los controles descritos en:
 
 `AUTENTICACION_SEGURIDAD.md`
 
-El rate limiting específico del login ya está implementado y probado.
+Ya están implementados y probados:
+
+- rate limiting específico del login;
+- timeout de inactividad de 30 minutos;
+- cifrado de sesión;
+- `HttpOnly` y `SameSite=Lax`;
+- salvaguarda que exige `Secure` para la cookie de sesión en producción.
 
 Permanecen como controles obligatorios antes de producción:
 
-- HTTPS/HSTS;
-- sesiones endurecidas;
+- despliegue HTTPS/HSTS;
+- timeout absoluto y revocación/gestión de sesiones;
+- reautenticación para operaciones sensibles;
 - auditoría de autenticación y throttling;
 - headers defensivos;
 - MFA;
