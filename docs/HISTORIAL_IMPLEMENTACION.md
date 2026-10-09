@@ -48,7 +48,11 @@ Se incorporaron:
 - cifrado de datos de sesión;
 - política de cookie `HttpOnly` + `SameSite=Lax`;
 - salvaguarda que exige `SESSION_SECURE_COOKIE=true` en producción;
-- timeout absoluto de sesión de 8 horas con marca de inicio autenticado y expiración HTTP 401.
+- timeout absoluto de sesión de 8 horas con marca de inicio autenticado y expiración HTTP 401;
+- listado de sesiones activas propias sin exponer identificadores persistidos;
+- revocación individual de sesiones propias distintas de la actual;
+- revocación de todas las demás sesiones propias conservando la actual;
+- filtrado de sesiones expiradas por inactividad, incluido el límite exacto configurado.
 
 Commits relevantes:
 
@@ -57,6 +61,8 @@ Commits relevantes:
 `d3acd0e feat: endurecer configuracion de sesiones`
 
 `bee9ca1 feat: agregar timeout absoluto de sesion`
+
+`bc9d17c feat: gestionar y revocar sesiones`
 
 ## 5. Roles y permisos
 
@@ -122,13 +128,15 @@ Dentro de este endurecimiento ya se publicó:
 - `HttpOnly` y `SameSite=Lax`;
 - validación de arranque que exige cookie `Secure` en producción;
 - timeout absoluto de sesión de 8 horas;
-- invalidación de la sesión y respuesta HTTP 401 al alcanzar el límite absoluto.
+- invalidación de la sesión y respuesta HTTP 401 al alcanzar el límite absoluto;
+- administración y revocación manual de sesiones propias mediante IDs públicos opacos;
+- protección de la sesión actual y aislamiento entre usuarios;
+- exclusión del listado de sesiones vencidas por inactividad.
 
 Permanecen como requisitos preproducción:
 
 - despliegue HTTPS/HSTS;
 - CSP/headers;
-- revocación/gestión de sesiones;
 - reautenticación sensible;
 - auditoría de seguridad;
 - MFA;
@@ -152,7 +160,7 @@ A partir del 8 de octubre:
 
 ## 9. Próximo bloque
 
-Después de cerrar gestión básica de perfiles, rate limiting, endurecimiento de sesión/cookies y timeout absoluto de 8 horas, el siguiente bloque recomendado es la gestión/revocación de sesiones.
+Después de cerrar gestión básica de perfiles, rate limiting, endurecimiento de sesión/cookies, timeout absoluto de 8 horas y gestión/revocación manual de sesiones, el siguiente bloque recomendado es la reautenticación para operaciones sensibles.
 
 ## 10. Regla de actualización
 
