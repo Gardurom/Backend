@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\PersonController;
+use App\Http\Controllers\Api\SessionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -13,6 +14,24 @@ Route::get('/user', function (Request $request) {
     'siga.session.absolute',
 ]);
 
+Route::get('/sessions', [SessionController::class, 'index'])
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+    ]);
+
+Route::delete('/sessions/others', [SessionController::class, 'destroyOthers'])
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+    ]);
+
+Route::delete('/sessions/{session}', [SessionController::class, 'destroy'])
+    ->where('session', '[a-f0-9]{64}')
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+    ]);
 Route::post('/personas', [PersonController::class, 'store'])
     ->middleware([
         'auth:sanctum',
