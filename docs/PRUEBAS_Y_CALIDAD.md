@@ -59,7 +59,10 @@ Valida reglas con PostgreSQL real mediante transacciones reversibles.
 - asignación y desasignación de perfiles;
 - rate limiting de login;
 - configuración de seguridad de sesión/cookies;
-- timeout absoluto de sesión.
+- timeout absoluto de sesión;
+- gestión y revocación de sesiones;
+- aislamiento de sesiones entre usuarios;
+- límite exacto del timeout de inactividad.
 
 ## 3. Entorno funcional
 
@@ -119,13 +122,26 @@ Controles de seguridad con prueba funcional ya implementados:
   - expira al alcanzar 8 horas;
   - el login registra `siga_authenticated_at`;
   - permanece válida justo antes de 8 horas;
-  - sesiones existentes sin marca absoluta inicializan la marca de forma compatible.
+  - sesiones existentes sin marca absoluta inicializan la marca de forma compatible;
+- gestión y revocación de sesiones:
+  - lista únicamente sesiones propias;
+  - nunca expone el ID real persistido;
+  - utiliza un ID público HMAC-SHA256;
+  - permite revocar una sesión propia distinta de la actual;
+  - no permite revocar sesiones de otro usuario;
+  - no permite revocar la sesión actual mediante el endpoint individual;
+  - permite revocar todas las demás sesiones propias conservando la actual;
+  - la revocación masiva es idempotente cuando no existen otras sesiones;
+  - no lista sesiones expiradas por inactividad;
+  - verifica el límite exacto: 30:00 expira y 29:59 permanece activa.
 
-La cobertura específica está en `SessionAbsoluteTimeoutTest` y fue publicada en `bee9ca1`.
+Evidencia publicada:
+
+- `SessionAbsoluteTimeoutTest` — `bee9ca1 feat: agregar timeout absoluto de sesion`;
+- `SessionManagementTest` — `bc9d17c feat: gestionar y revocar sesiones`.
 
 Deben añadirse pruebas específicas para los controles preproducción pendientes:
 
-- revocación y administración de sesiones;
 - reautenticación para operaciones sensibles;
 - headers defensivos;
 - auditoría de login y throttling;
