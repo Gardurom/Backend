@@ -42,6 +42,9 @@ Componentes confirmados en código:
 - `POST /login`.
 - `POST /logout`.
 - `GET /api/user`.
+- `GET /api/sessions`.
+- `DELETE /api/sessions/{session}`.
+- `DELETE /api/sessions/others`.
 - middleware `auth:sanctum`.
 - protección CSRF.
 - CORS con `supports_credentials=true`.
@@ -58,6 +61,11 @@ Componentes confirmados en código:
 - tabla `system.sessions`.
 - timeout absoluto de sesión de 8 horas.
 - middleware `siga.session.absolute` en las rutas API autenticadas actuales.
+- listado de sesiones activas del usuario autenticado.
+- identificadores públicos opacos de sesión mediante HMAC-SHA256; el ID real de `system.sessions` no se expone.
+- revocación individual limitada a sesiones propias distintas de la sesión actual.
+- revocación masiva de las demás sesiones propias conservando la sesión actual.
+- las sesiones vencidas por inactividad no se presentan como activas.
 
 Configuración versionada relevante:
 
@@ -197,13 +205,20 @@ La auditoría de eventos de throttling y otros eventos sospechosos sigue planifi
 - política `SameSite=Lax`;
 - salvaguarda de `Secure` obligatoria al arrancar en producción;
 - timeout absoluto de 8 horas desde el inicio autenticado.
+- administración de sesiones activas del propio usuario;
+- revocación de una sesión propia distinta de la actual;
+- revocación de todas las demás sesiones propias conservando la actual;
+- IDs públicos de sesión derivados con HMAC-SHA256, sin exponer el ID persistido;
+- sesiones con inactividad igual o superior al límite configurado no se listan como activas.
 
 Evidencia:
 
 - prueba funcional: `SessionSecurityConfigurationTest`;
 - commit: `d3acd0e feat: endurecer configuracion de sesiones`;
 - prueba funcional: `SessionAbsoluteTimeoutTest`;
-- commit: `bee9ca1 feat: agregar timeout absoluto de sesion`.
+- commit: `bee9ca1 feat: agregar timeout absoluto de sesion`;
+- prueba funcional: `SessionManagementTest`;
+- commit: `bc9d17c feat: gestionar y revocar sesiones`.
 
 Reglas del timeout absoluto implementado:
 
@@ -216,11 +231,11 @@ Reglas del timeout absoluto implementado:
 
 **Endurecimiento planificado**
 
-- revocación de otras sesiones ante cambios críticos;
 - reautenticación para operaciones sensibles;
-- posibilidad de administrar sesiones activas.
+- revocación automática de otras sesiones cuando un cambio crítico de credenciales o identidad así lo requiera;
+- auditoría de los eventos de revocación de sesión.
 
-La revocación y administración de sesiones no se consideran implementadas hasta existir código/configuración y pruebas.
+La administración y revocación manual de sesiones ya están implementadas; los disparadores automáticos por cambios críticos y su auditoría siguen pendientes.
 
 ## 10. MFA y Passkeys/WebAuthn
 
