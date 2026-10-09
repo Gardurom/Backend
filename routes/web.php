@@ -13,3 +13,10 @@ Route::post('/login', [AuthenticatedSessionController::class, 'store'])
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+Route::post('/reauthenticate', [AuthenticatedSessionController::class, 'reauthenticate'])
+    ->middleware([
+        'auth',
+        'siga.session.absolute',
+    ])
+    ->name('reauthenticate');

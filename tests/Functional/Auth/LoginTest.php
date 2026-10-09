@@ -84,4 +84,45 @@ class LoginTest extends HttpFunctionalTestCase
 
         $this->assertAuthenticatedAs($user);
     }
+
+    public function test_successful_login_marks_session_as_recently_reauthenticated(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Usuario Login Reautenticado SIGA',
+            'email' => 'login.reauthenticated@siga.test',
+            'password' => Hash::make('ClaveSegura123!'),
+        ]);
+
+        $csrfToken = 'csrf-login-reauthenticated-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader('X-CSRF-TOKEN', $csrfToken)
+            ->postJson('/login', [
+                'email' => $user->email,
+                'password' => 'ClaveSegura123!',
+            ]);
+
+        $response->assertNoContent();
+
+        $response->assertSessionHas(
+            'siga_authenticated_at'
+        );
+
+        $response->assertSessionHas(
+            'siga_reauthenticated_at'
+        );
+
+        self::assertIsInt(
+            session('siga_authenticated_at')
+        );
+
+        self::assertIsInt(
+            session('siga_reauthenticated_at')
+        );
+
+        $this->assertAuthenticatedAs($user);
+    }
 }

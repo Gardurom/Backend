@@ -42,8 +42,12 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
         $csrfToken = 'csrf-token-persona-reinstate-forbidden-siga';
 
         $response = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
             ->withSession([
                 '_token' => $csrfToken,
+                'siga_authenticated_at' => now()->timestamp,
+                'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson(
@@ -81,8 +85,12 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
         $csrfToken = 'csrf-token-persona-reinstate-siga';
 
         $response = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
             ->withSession([
                 '_token' => $csrfToken,
+                'siga_authenticated_at' => now()->timestamp,
+                'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson(
@@ -119,8 +127,12 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
         $csrfToken = 'csrf-token-persona-reinstate-missing-siga';
 
         $response = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
             ->withSession([
                 '_token' => $csrfToken,
+                'siga_authenticated_at' => now()->timestamp,
+                'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson(
@@ -158,8 +170,12 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
         $csrfToken = 'csrf-token-persona-reinstate-repeated-siga';
 
         $firstResponse = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
             ->withSession([
                 '_token' => $csrfToken,
+                'siga_authenticated_at' => now()->timestamp,
+                'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson(
@@ -172,8 +188,12 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
             ->assertJsonPath('fecha_baja', null);
 
         $secondResponse = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
             ->withSession([
                 '_token' => $csrfToken,
+                'siga_authenticated_at' => now()->timestamp,
+                'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson(
@@ -228,8 +248,12 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
         $csrfToken = 'csrf-token-persona-reinstate-audit-siga';
 
         $response = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
             ->withSession([
                 '_token' => $csrfToken,
+                'siga_authenticated_at' => now()->timestamp,
+                'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson(
@@ -257,6 +281,75 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
             $otherUser->id,
             $activity->id_usuario
         );
+    }
+
+    public function test_reinstating_person_requires_recent_reauthentication(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO REINGRESO SENSIBLE PERSONA',
+            'email' => 'persona.reinstate.reauthentication@siga.test',
+        ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
+        $person = $this->db->selectOne(
+            'INSERT INTO institutional.persons (
+                nombres,
+                estatus,
+                fecha_baja
+            )
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            RETURNING id_persona',
+            [
+                'PERSONA REINGRESO SENSIBLE API',
+                'BAJA',
+            ]
+        );
+
+        $this->actingAs($user);
+
+        $now = now()->timestamp;
+        $csrfToken = 'csrf-persona-reinstate-reauthentication-siga';
+
+        $response = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
+            ->withSession([
+                '_token' => $csrfToken,
+                'siga_authenticated_at' => $now,
+            ])
+            ->withHeader('X-CSRF-TOKEN', $csrfToken)
+            ->postJson(
+                '/api/personas/'.$person->id_persona.'/reingreso'
+            );
+
+        $response
+            ->assertStatus(423)
+            ->assertJson([
+                'message' => 'Reauthentication required.',
+            ]);
+
+        $storedPerson = $this->db
+            ->table('institutional.persons')
+            ->where('id_persona', $person->id_persona)
+            ->first();
+
+        self::assertNotNull($storedPerson);
+        self::assertSame('BAJA', $storedPerson->estatus);
+        self::assertNotNull($storedPerson->fecha_baja);
+
+        self::assertSame(
+            0,
+            $this->db
+                ->table('system.activities')
+                ->where('entidad', 'PERSONA')
+                ->where('id_entidad', $person->id_persona)
+                ->where('accion', 'REINGRESO')
+                ->count(),
+            'El REINGRESO no debe ejecutarse ni auditarse sin reautenticación reciente.'
+        );
+
+        $this->assertAuthenticatedAs($user);
     }
 
     private function assignRole(

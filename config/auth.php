@@ -117,4 +117,19 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | SIGA Reauthentication Timeout
+    |--------------------------------------------------------------------------
+    |
+    | Sensitive operations require a recent password confirmation. This
+    | timeout is expressed in seconds and defaults to fifteen minutes.
+    |
+    */
+
+    'reauthentication_timeout' => env(
+        'AUTH_REAUTHENTICATION_TIMEOUT',
+        900
+    ),
+
 ];

@@ -152,6 +152,7 @@ class SessionManagementTest extends HttpFunctionalTestCase
         $session->put([
             '_token' => $csrfToken,
             'siga_authenticated_at' => $now,
+            'siga_reauthenticated_at' => $now,
         ]);
 
         $session->save();
@@ -248,6 +249,7 @@ class SessionManagementTest extends HttpFunctionalTestCase
         $session->put([
             '_token' => $csrfToken,
             'siga_authenticated_at' => $now,
+            'siga_reauthenticated_at' => $now,
         ]);
 
         $session->save();
@@ -338,6 +340,7 @@ class SessionManagementTest extends HttpFunctionalTestCase
         $session->put([
             '_token' => $csrfToken,
             'siga_authenticated_at' => $now,
+            'siga_reauthenticated_at' => $now,
         ]);
 
         $session->save();
@@ -418,6 +421,7 @@ class SessionManagementTest extends HttpFunctionalTestCase
         $session->put([
             '_token' => $csrfToken,
             'siga_authenticated_at' => $now,
+            'siga_reauthenticated_at' => $now,
         ]);
 
         $session->save();
@@ -561,6 +565,7 @@ class SessionManagementTest extends HttpFunctionalTestCase
         $session->put([
             '_token' => $csrfToken,
             'siga_authenticated_at' => $now,
+            'siga_reauthenticated_at' => $now,
         ]);
 
         $session->save();

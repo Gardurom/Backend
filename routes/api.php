@@ -24,6 +24,7 @@ Route::delete('/sessions/others', [SessionController::class, 'destroyOthers'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.reauthenticated',
     ]);
 
 Route::delete('/sessions/{session}', [SessionController::class, 'destroy'])
@@ -31,6 +32,7 @@ Route::delete('/sessions/{session}', [SessionController::class, 'destroy'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.reauthenticated',
     ]);
 Route::post('/personas', [PersonController::class, 'store'])
     ->middleware([
@@ -58,6 +60,7 @@ Route::post('/personas/{id_persona}/baja', [PersonController::class, 'withdraw']
         'auth:sanctum',
         'siga.session.absolute',
         'siga.permission:personas.baja',
+        'siga.reauthenticated',
     ]);
 
 Route::post('/personas/{id_persona}/reingreso', [PersonController::class, 'reinstate'])
@@ -65,4 +68,5 @@ Route::post('/personas/{id_persona}/reingreso', [PersonController::class, 'reins
         'auth:sanctum',
         'siga.session.absolute',
         'siga.permission:personas.reingreso',
+        'siga.reauthenticated',
     ]);

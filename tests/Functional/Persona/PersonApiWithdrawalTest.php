@@ -35,8 +35,12 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
         $csrfToken = 'csrf-token-persona-withdraw-forbidden-siga';
 
         $response = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
             ->withSession([
                 '_token' => $csrfToken,
+                'siga_authenticated_at' => now()->timestamp,
+                'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson(
@@ -67,8 +71,12 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
         $csrfToken = 'csrf-token-persona-withdraw-siga';
 
         $response = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
             ->withSession([
                 '_token' => $csrfToken,
+                'siga_authenticated_at' => now()->timestamp,
+                'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson(
@@ -105,8 +113,12 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
         $csrfToken = 'csrf-token-persona-withdraw-missing-siga';
 
         $response = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
             ->withSession([
                 '_token' => $csrfToken,
+                'siga_authenticated_at' => now()->timestamp,
+                'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson(
@@ -137,8 +149,12 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
         $csrfToken = 'csrf-token-persona-withdraw-repeated-siga';
 
         $firstResponse = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
             ->withSession([
                 '_token' => $csrfToken,
+                'siga_authenticated_at' => now()->timestamp,
+                'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson(
@@ -150,8 +166,12 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
         $firstDate = $firstResponse->json('fecha_baja');
 
         $secondResponse = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
             ->withSession([
                 '_token' => $csrfToken,
+                'siga_authenticated_at' => now()->timestamp,
+                'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson(
@@ -199,8 +219,12 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
         $csrfToken = 'csrf-token-persona-withdraw-audit-siga';
 
         $response = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
             ->withSession([
                 '_token' => $csrfToken,
+                'siga_authenticated_at' => now()->timestamp,
+                'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson(
@@ -228,6 +252,68 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
             $otherUser->id,
             $activity->id_usuario
         );
+    }
+
+    public function test_withdrawing_person_requires_recent_reauthentication(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO BAJA SENSIBLE PERSONA',
+            'email' => 'persona.withdraw.reauthentication@siga.test',
+        ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
+        $person = $this->db->selectOne(
+            'INSERT INTO institutional.persons (nombres)
+             VALUES (?)
+             RETURNING id_persona',
+            ['PERSONA BAJA SENSIBLE API']
+        );
+
+        $this->actingAs($user);
+
+        $now = now()->timestamp;
+        $csrfToken = 'csrf-persona-withdraw-reauthentication-siga';
+
+        $response = $this
+            ->withCredentials()
+            ->withHeader('Origin', 'http://localhost')
+            ->withSession([
+                '_token' => $csrfToken,
+                'siga_authenticated_at' => $now,
+            ])
+            ->withHeader('X-CSRF-TOKEN', $csrfToken)
+            ->postJson(
+                '/api/personas/'.$person->id_persona.'/baja'
+            );
+
+        $response
+            ->assertStatus(423)
+            ->assertJson([
+                'message' => 'Reauthentication required.',
+            ]);
+
+        $storedPerson = $this->db
+            ->table('institutional.persons')
+            ->where('id_persona', $person->id_persona)
+            ->first();
+
+        self::assertNotNull($storedPerson);
+        self::assertSame('ACTIVO', $storedPerson->estatus);
+        self::assertNull($storedPerson->fecha_baja);
+
+        self::assertSame(
+            0,
+            $this->db
+                ->table('system.activities')
+                ->where('entidad', 'PERSONA')
+                ->where('id_entidad', $person->id_persona)
+                ->where('accion', 'BAJA')
+                ->count(),
+            'La BAJA no debe ejecutarse ni auditarse sin reautenticación reciente.'
+        );
+
+        $this->assertAuthenticatedAs($user);
     }
 
     private function assignRole(
