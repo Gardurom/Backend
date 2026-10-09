@@ -1,6 +1,6 @@
 # SIGA — Arquitectura técnica
 
-Última actualización: 2026-10-08
+Última actualización: 2026-10-09
 
 ## 1. Principios
 
@@ -49,9 +49,11 @@ Frontend previsto:
 - Angular;
 - Leaflet;
 - misma plataforma lógica que el backend;
-- autenticación SPA stateful con Sanctum.
+- autenticación SPA stateful con Sanctum;
+- manejo explícito de HTTP 423 para solicitar reautenticación antes de repetir una operación sensible;
+- uso de `POST /reauthenticate` sin sustituir los permisos resueltos por el backend.
 
-El frontend nunca es la autoridad final de permisos.
+El frontend nunca es la autoridad final de permisos ni de reautenticación.
 
 ## 4. Backend
 
@@ -142,6 +144,14 @@ Controles ya implementados:
 - IDs públicos opacos derivados con HMAC-SHA256, sin exponer el ID persistido;
 - revocación individual y masiva limitada al usuario autenticado, conservando la sesión actual;
 - sesiones vencidas por inactividad se excluyen del listado activo;
+- `POST /reauthenticate` verifica nuevamente la contraseña actual;
+- el login correcto registra `siga_reauthenticated_at`;
+- rate limiting de reautenticación: 5 fallos en 60 segundos por usuario autenticado + IP;
+- ventana de reautenticación de 900 segundos por defecto;
+- middleware `siga.reauthenticated`;
+- HTTP 423 cuando una operación sensible necesita nueva confirmación;
+- revocación de sesiones, BAJA y REINGRESO requieren reautenticación reciente;
+- BAJA y REINGRESO conservan el orden `auth -> timeout absoluto -> permiso -> reautenticación`;
 - mínimo privilegio DB;
 - autorización central;
 - default-deny.
@@ -150,7 +160,6 @@ Controles obligatorios preproducción:
 
 - despliegue HTTPS/HSTS;
 - CSP/headers defensivos;
-- reautenticación para operaciones sensibles;
 - auditoría de eventos de autenticación;
 - MFA;
 - Passkeys/WebAuthn.

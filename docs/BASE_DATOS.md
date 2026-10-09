@@ -1,6 +1,6 @@
 # SIGA — Base de datos
 
-Última actualización: 2026-10-08
+Última actualización: 2026-10-09
 
 ## 1. Plataforma
 
@@ -51,6 +51,19 @@ RESET ROLE
 - `role_permissions`;
 - `profiles`;
 - `user_profiles`.
+
+### Sesiones y reautenticación
+
+La reautenticación para operaciones sensibles no requirió cambios de esquema.
+
+Las marcas:
+
+- `siga_authenticated_at`;
+- `siga_reauthenticated_at`;
+
+se conservan dentro de los datos de sesión administrados por Laravel y almacenados de forma cifrada mediante `system.sessions`; no son columnas adicionales de la tabla.
+
+El bloque publicado en `f3eb118` no añadió tablas, columnas, secuencias, funciones ni privilegios PostgreSQL.
 
 ## 4. Persona
 

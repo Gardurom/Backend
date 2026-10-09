@@ -1,6 +1,6 @@
 # SIGA — Autenticación y seguridad
 
-Última actualización: 2026-10-08
+Última actualización: 2026-10-09
 
 ## 1. Propósito
 
@@ -24,6 +24,13 @@ SPA SIGA
   |       +--> login correcto => limpiar contador
   |       +--> session()->regenerate()
   |       +--> registra siga_authenticated_at
+  |       +--> registra siga_reauthenticated_at
+  |
+  +--> POST /reauthenticate
+  |       |
+  |       +--> verifica contraseña actual
+  |       +--> RateLimiter (5 fallos / 60 s / usuario+IP)
+  |       +--> éxito => renueva siga_reauthenticated_at
   |
   +--> cookie de sesión
   |
@@ -41,6 +48,7 @@ Componentes confirmados en código:
 - guard `web`.
 - `POST /login`.
 - `POST /logout`.
+- `POST /reauthenticate`.
 - `GET /api/user`.
 - `GET /api/sessions`.
 - `DELETE /api/sessions/{session}`.
@@ -66,6 +74,12 @@ Componentes confirmados en código:
 - revocación individual limitada a sesiones propias distintas de la sesión actual.
 - revocación masiva de las demás sesiones propias conservando la sesión actual.
 - las sesiones vencidas por inactividad no se presentan como activas.
+- reautenticación mediante contraseña actual para operaciones sensibles.
+- marcador de sesión `siga_reauthenticated_at`.
+- ventana de reautenticación configurable mediante `AUTH_REAUTHENTICATION_TIMEOUT`, con 900 segundos por defecto.
+- rate limiting de reautenticación: 5 fallos en 60 segundos por usuario autenticado + dirección IP.
+- respuesta HTTP 423 cuando una operación sensible requiere reautenticación.
+- revocación individual y masiva de sesiones, BAJA de Persona y REINGRESO de Persona requieren reautenticación reciente.
 
 Configuración versionada relevante:
 
@@ -229,13 +243,49 @@ Reglas del timeout absoluto implementado:
 - una sesión existente sin `siga_authenticated_at` inicializa la marca en su primera petición con sesión;
 - si la petición autenticada no tiene store de sesión, el middleware no intenta aplicar un timeout de sesión y deja continuar el mecanismo de autenticación correspondiente.
 
+### Reautenticación para operaciones sensibles
+
+**Estado: IMPLEMENTADO**
+
+Reglas implementadas:
+
+- el login correcto registra `siga_reauthenticated_at` junto con `siga_authenticated_at`;
+- `POST /reauthenticate` exige una sesión autenticada y dentro del timeout absoluto;
+- la contraseña se verifica contra el hash actual del usuario;
+- se permiten 5 fallos dentro de una ventana de 60 segundos por usuario autenticado + dirección IP;
+- el siguiente intento con el bucket agotado responde HTTP 429 e incluye `Retry-After`;
+- una reautenticación correcta limpia el contador y renueva `siga_reauthenticated_at`;
+- la ventana de validez es configurable mediante `AUTH_REAUTHENTICATION_TIMEOUT`;
+- el valor predeterminado es de 900 segundos;
+- una reautenticación de 14:59 continúa válida;
+- al alcanzar exactamente 15:00 se considera vencida;
+- una marca ausente, no entera o futura se rechaza;
+- una operación sensible sin reautenticación reciente responde HTTP 423;
+- el middleware de protección es `siga.reauthenticated`.
+
+Operaciones actualmente protegidas:
+
+- `DELETE /api/sessions/{session}`;
+- `DELETE /api/sessions/others`;
+- `POST /api/personas/{id_persona}/baja`;
+- `POST /api/personas/{id_persona}/reingreso`.
+
+La consulta de sesiones y las operaciones ordinarias de Persona no requieren una segunda confirmación de contraseña.
+
+Evidencia:
+
+- middleware `EnsureRecentReauthentication`;
+- `SensitiveOperationReauthenticationTest`;
+- `PersonApiWithdrawalTest`;
+- `PersonApiReinstatementTest`;
+- commit `f3eb118 feat: exigir reautenticacion en operaciones sensibles`.
+
 **Endurecimiento planificado**
 
-- reautenticación para operaciones sensibles;
 - revocación automática de otras sesiones cuando un cambio crítico de credenciales o identidad así lo requiera;
-- auditoría de los eventos de revocación de sesión.
+- auditoría de eventos de revocación y reautenticación.
 
-La administración y revocación manual de sesiones ya están implementadas; los disparadores automáticos por cambios críticos y su auditoría siguen pendientes.
+La administración y revocación manual de sesiones y la reautenticación para operaciones sensibles ya están implementadas. Los disparadores automáticos por cambios críticos y su auditoría siguen pendientes.
 
 ## 10. MFA y Passkeys/WebAuthn
 

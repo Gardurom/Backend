@@ -1,6 +1,6 @@
 # SIGA — Auditoría
 
-Última actualización: 2026-10-08
+Última actualización: 2026-10-09
 
 ## 1. Propósito
 
@@ -61,6 +61,10 @@ Cuando una acción de negocio y su auditoría forman una sola operación, deben 
 
 Si falla la auditoría, la modificación de negocio se revierte.
 
+Para `BAJA` y `REINGRESO`, la autorización y la reautenticación reciente deben completarse antes de ejecutar la acción de dominio.
+
+Si falta la reautenticación reciente, la API responde HTTP 423 y no debe producirse modificación de Persona ni registro `BAJA`/`REINGRESO` en `system.activities`.
+
 ## 7. Seguridad futura
 
 Se ha aprobado auditar también eventos de autenticación y administración de seguridad, por ejemplo:
@@ -74,9 +78,12 @@ Se ha aprobado auditar también eventos de autenticación y administración de s
 - cambios de roles;
 - cambios de perfiles;
 - cambio de perfil predeterminado;
-- throttling.
+- throttling;
+- reautenticación correcta, fallida o bloqueada.
 
 **Estado:** PLANIFICADO.
+
+La protección mediante reautenticación ya está implementada para operaciones sensibles, pero los eventos propios de reautenticación todavía no se escriben en `system.activities`.
 
 La tabla actual no admite todavía esos valores en `accion`. No deben insertarse hasta diseñar una ampliación explícita con migración y pruebas.
 

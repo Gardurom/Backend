@@ -1,6 +1,6 @@
 # SIGA — Persona
 
-Última actualización: 2026-10-08
+Última actualización: 2026-10-09
 
 ## 1. Propósito
 
@@ -102,6 +102,15 @@ Todas las operaciones requieren:
 - `auth:sanctum`;
 - permiso específico de Persona.
 
+Además:
+
+- `POST /api/personas/{id_persona}/baja` requiere reautenticación reciente;
+- `POST /api/personas/{id_persona}/reingreso` requiere reautenticación reciente;
+- el orden aplicado es autenticación, timeout absoluto, permiso de Persona y finalmente reautenticación;
+- si la reautenticación falta o está vencida, se responde HTTP 423;
+- una respuesta HTTP 423 no debe modificar Persona ni crear la actividad `BAJA` o `REINGRESO`;
+- registro, consulta y actualización ordinaria de Persona no requieren una segunda confirmación de contraseña.
+
 ## 8. Datos descartados
 
 No forman parte de Persona salvo nueva decisión formal:
@@ -129,4 +138,7 @@ Se prueban:
 - API;
 - autorización;
 - auditoría;
-- relación con User.
+- relación con User;
+- autorización previa a BAJA y REINGRESO;
+- rechazo HTTP 423 de BAJA y REINGRESO sin reautenticación reciente;
+- ausencia de modificación y auditoría cuando la reautenticación requerida no se satisface.

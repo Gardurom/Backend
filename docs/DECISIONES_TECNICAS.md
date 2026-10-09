@@ -1,6 +1,6 @@
 # SIGA — Decisiones técnicas y funcionales
 
-Última actualización: 2026-10-08
+Última actualización: 2026-10-09
 
 ## 1. Propósito
 
@@ -211,7 +211,16 @@ Controles ya implementados:
 - una sesión propia distinta de la actual puede revocarse individualmente;
 - las demás sesiones propias pueden revocarse en conjunto conservando la sesión actual;
 - una sesión de otro usuario no puede revocarse desde estos endpoints;
-- las sesiones que alcanzan el límite de inactividad no se presentan como activas.
+- las sesiones que alcanzan el límite de inactividad no se presentan como activas;
+- el login correcto establece `siga_reauthenticated_at`;
+- existe `POST /reauthenticate` para confirmar la contraseña actual;
+- la reautenticación aplica rate limiting independiente de 5 fallos en 60 segundos por usuario autenticado + IP;
+- una reautenticación correcta limpia ese bucket;
+- la ventana predeterminada de reautenticación es de 900 segundos;
+- el middleware `siga.reauthenticated` exige una marca reciente;
+- una marca ausente, inválida, futura o vencida no satisface el control;
+- operaciones sensibles sin reautenticación reciente responden HTTP 423;
+- revocación individual y masiva de sesiones, BAJA y REINGRESO están protegidos por reautenticación reciente.
 
 Evidencia publicada:
 
@@ -223,13 +232,14 @@ Evidencia publicada:
 
 `bc9d17c feat: gestionar y revocar sesiones`
 
+`f3eb118 feat: exigir reautenticacion en operaciones sensibles`
+
 Antes de producción permanecen requeridos:
 
 - HTTPS;
 - HSTS;
 - CSP;
 - headers defensivos;
-- reautenticación para operaciones sensibles;
 - auditoría de eventos de autenticación, incluido throttling;
 - MFA;
 - Passkeys/WebAuthn;
@@ -312,3 +322,30 @@ Los documentos vivos:
 - no se crearán ramas ni Pull Requests sin autorización explícita previa;
 - los cambios documentales aprobados se integrarán directamente a `main` siguiendo validación y trazabilidad;
 - no se documentará como publicado un cambio que exista solo localmente.
+
+## 21. DT-018 — Reautenticación selectiva para operaciones sensibles
+
+**Estado:** IMPLEMENTADA
+
+SIGA exige una confirmación reciente de la contraseña para operaciones con impacto sensible, sin convertir la reautenticación en un requisito general para toda petición autenticada.
+
+Reglas:
+
+- un login correcto cuenta como reautenticación reciente;
+- la marca de control es `siga_reauthenticated_at`;
+- la ventana predeterminada es de 900 segundos y se configura mediante `AUTH_REAUTHENTICATION_TIMEOUT`;
+- `POST /reauthenticate` verifica la contraseña actual;
+- el endpoint tiene rate limiting independiente de 5 fallos en 60 segundos por usuario autenticado + IP;
+- una operación protegida sin marca reciente responde HTTP 423;
+- `GET /api/sessions` no requiere reautenticación adicional;
+- registro, consulta y actualización ordinaria de Persona no requieren reautenticación adicional;
+- revocar una sesión propia distinta de la actual sí la requiere;
+- revocar todas las demás sesiones propias sí la requiere;
+- BAJA y REINGRESO de Persona sí la requieren;
+- en BAJA y REINGRESO el permiso se verifica antes de exigir reautenticación, evitando que un usuario no autorizado obtenga información adicional del control sensible.
+
+Operaciones futuras de alto impacto, como cambios de contraseña, correo, MFA, roles o permisos, deberán evaluar y aplicar este middleware cuando corresponda.
+
+Evidencia:
+
+`f3eb118 feat: exigir reautenticacion en operaciones sensibles`

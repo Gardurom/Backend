@@ -1,6 +1,6 @@
 # SIGA — Pruebas y calidad
 
-Última actualización: 2026-10-08
+Última actualización: 2026-10-09
 
 ## 1. Principio
 
@@ -62,7 +62,25 @@ Valida reglas con PostgreSQL real mediante transacciones reversibles.
 - timeout absoluto de sesión;
 - gestión y revocación de sesiones;
 - aislamiento de sesiones entre usuarios;
-- límite exacto del timeout de inactividad.
+- límite exacto del timeout de inactividad;
+- reautenticación con contraseña actual;
+- rate limiting de reautenticación;
+- limpieza del bucket después de reautenticación correcta;
+- límite exacto de reautenticación: 14:59 válido y 15:00 vencido;
+- revocación de sesiones protegida por reautenticación;
+- BAJA y REINGRESO de Persona protegidos por reautenticación;
+- ausencia de mutación y auditoría cuando BAJA o REINGRESO reciben HTTP 423.
+
+### Último cierre global publicado
+
+Para el bloque `f3eb118 feat: exigir reautenticacion en operaciones sensibles`:
+
+- Unit/Feature: 2 pruebas / 2 assertions;
+- Installation: 55 pruebas / 280 assertions;
+- Functional: 163 pruebas / 2091 assertions;
+- total: **220 pruebas / 2373 assertions**.
+
+Todas las suites finalizaron en verde antes del commit y push.
 
 ## 3. Entorno funcional
 
@@ -133,22 +151,33 @@ Controles de seguridad con prueba funcional ya implementados:
   - permite revocar todas las demás sesiones propias conservando la actual;
   - la revocación masiva es idempotente cuando no existen otras sesiones;
   - no lista sesiones expiradas por inactividad;
-  - verifica el límite exacto: 30:00 expira y 29:59 permanece activa.
+  - verifica el límite exacto: 30:00 expira y 29:59 permanece activa;
+- reautenticación de operaciones sensibles:
+  - el login correcto registra `siga_reauthenticated_at`;
+  - `POST /reauthenticate` acepta la contraseña actual correcta;
+  - una contraseña incorrecta responde 422 y no crea marca de reautenticación;
+  - cinco fallos son permitidos y el intento posterior responde HTTP 429 con `Retry-After`;
+  - un éxito limpia los intentos previos;
+  - 14:59 de antigüedad permite la operación;
+  - exactamente 15:00 exige nueva confirmación;
+  - revocación individual y masiva sin marca reciente responde HTTP 423;
+  - BAJA y REINGRESO sin marca reciente responden HTTP 423;
+  - BAJA y REINGRESO bloqueados por HTTP 423 no modifican datos ni generan su actividad de auditoría.
 
 Evidencia publicada:
 
 - `SessionAbsoluteTimeoutTest` — `bee9ca1 feat: agregar timeout absoluto de sesion`;
-- `SessionManagementTest` — `bc9d17c feat: gestionar y revocar sesiones`.
+- `SessionManagementTest` — `bc9d17c feat: gestionar y revocar sesiones`;
+- `SensitiveOperationReauthenticationTest`, `PersonApiWithdrawalTest` y `PersonApiReinstatementTest` — `f3eb118 feat: exigir reautenticacion en operaciones sensibles`.
 
 Deben añadirse pruebas específicas para los controles preproducción pendientes:
 
-- reautenticación para operaciones sensibles;
 - headers defensivos;
 - auditoría de login y throttling;
 - MFA;
 - Passkeys/WebAuthn.
 
-Estos controles pendientes no se consideran implementados todavía.
+Estos controles restantes no se consideran implementados todavía.
 
 ## 7. Evidencia
 

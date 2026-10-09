@@ -1,6 +1,6 @@
 # SIGA — Documentación técnica
 
-Última actualización: 2026-10-08
+Última actualización: 2026-10-09
 
 ## 1. Propósito
 
@@ -78,9 +78,11 @@ Actualmente están publicados:
 - rate limiting específico del login;
 - endurecimiento básico de sesión/cookies;
 - timeout absoluto de sesión de 8 horas;
-- gestión y revocación manual de sesiones propias.
+- gestión y revocación manual de sesiones propias;
+- reautenticación para operaciones sensibles mediante contraseña actual;
+- protección por reautenticación de revocación de sesiones, BAJA y REINGRESO.
 
-Frontend Angular sigue pendiente.
+Frontend Angular sigue pendiente y constituye el siguiente bloque recomendado de integración.
 
 ## 5. Seguridad
 
@@ -100,12 +102,16 @@ Ya están implementados y probados:
 - timeout absoluto de sesión de 8 horas;
 - listado de sesiones activas propias con identificadores públicos opacos;
 - revocación individual y masiva de otras sesiones propias conservando la actual;
-- exclusión de sesiones vencidas por inactividad del listado activo.
+- exclusión de sesiones vencidas por inactividad del listado activo;
+- `POST /reauthenticate` con verificación de contraseña actual;
+- rate limiting de reautenticación;
+- ventana de 15 minutos por defecto;
+- HTTP 423 para operaciones sensibles sin confirmación reciente;
+- reautenticación obligatoria para revocación de sesiones, BAJA y REINGRESO.
 
 Permanecen como controles obligatorios antes de producción:
 
 - despliegue HTTPS/HSTS;
-- reautenticación para operaciones sensibles;
 - auditoría de autenticación y throttling;
 - headers defensivos;
 - MFA;

@@ -1,6 +1,6 @@
 # SIGA — Historial de implementación
 
-Última actualización: 2026-10-08
+Última actualización: 2026-10-09
 
 ## 1. Propósito
 
@@ -52,7 +52,15 @@ Se incorporaron:
 - listado de sesiones activas propias sin exponer identificadores persistidos;
 - revocación individual de sesiones propias distintas de la actual;
 - revocación de todas las demás sesiones propias conservando la actual;
-- filtrado de sesiones expiradas por inactividad, incluido el límite exacto configurado.
+- filtrado de sesiones expiradas por inactividad, incluido el límite exacto configurado;
+- `POST /reauthenticate` para confirmar nuevamente la contraseña actual;
+- registro de `siga_reauthenticated_at` después de login correcto y reautenticación correcta;
+- rate limiting de reautenticación con 5 fallos en 60 segundos por usuario autenticado + IP;
+- ventana de reautenticación de 900 segundos por defecto;
+- middleware `siga.reauthenticated`;
+- respuesta HTTP 423 cuando una operación sensible requiere nueva confirmación;
+- protección de revocación individual y masiva de sesiones;
+- protección de BAJA y REINGRESO de Persona mediante reautenticación reciente.
 
 Commits relevantes:
 
@@ -63,6 +71,8 @@ Commits relevantes:
 `bee9ca1 feat: agregar timeout absoluto de sesion`
 
 `bc9d17c feat: gestionar y revocar sesiones`
+
+`f3eb118 feat: exigir reautenticacion en operaciones sensibles`
 
 ## 5. Roles y permisos
 
@@ -142,13 +152,61 @@ Permanecen como requisitos preproducción:
 - MFA;
 - Passkeys/WebAuthn.
 
+La reautenticación para operaciones sensibles permanecía pendiente al cerrarse la decisión del 8 de octubre y quedó implementada posteriormente el 9 de octubre, como se registra en el siguiente hito.
+
 La decisión anterior de diferir Passkeys/WebAuthn como mejora posterior queda reemplazada.
 
 Checkpoint histórico:
 
 `CHECKPOINT_SEGURIDAD_PERFILES_2026-10-08.md`
 
-## 8. Gobierno documental
+## 8. Seguridad — reautenticación publicada el 9 de octubre
+
+Se publicó el bloque de reautenticación para operaciones sensibles sin sustituir la autorización existente.
+
+Hitos:
+
+- el login correcto establece `siga_authenticated_at` y `siga_reauthenticated_at` con el mismo instante;
+- `POST /reauthenticate` verifica la contraseña actual del usuario autenticado;
+- la reautenticación utiliza un bucket independiente de rate limiting por usuario autenticado + IP;
+- se permiten 5 fallos dentro de 60 segundos;
+- el intento posterior con el bucket agotado responde HTTP 429 con `Retry-After`;
+- una reautenticación correcta limpia los intentos previos;
+- la marca `siga_reauthenticated_at` se conserva en la sesión cifrada;
+- la ventana predeterminada es de 900 segundos mediante `AUTH_REAUTHENTICATION_TIMEOUT`;
+- una marca de 14:59 continúa válida;
+- exactamente a 15:00 se considera vencida;
+- marcas ausentes, inválidas o futuras no satisfacen el control;
+- `siga.reauthenticated` devuelve HTTP 423 cuando se requiere una nueva confirmación;
+- `DELETE /api/sessions/{session}` requiere reautenticación reciente;
+- `DELETE /api/sessions/others` requiere reautenticación reciente;
+- `POST /api/personas/{id_persona}/baja` requiere primero autorización y después reautenticación reciente;
+- `POST /api/personas/{id_persona}/reingreso` requiere primero autorización y después reautenticación reciente;
+- las operaciones ordinarias de consulta, registro y actualización de Persona no incorporaron reautenticación adicional.
+
+La precedencia de middleware para BAJA y REINGRESO conserva:
+
+`autenticación -> timeout absoluto -> permiso -> reautenticación`
+
+De esta forma, la reautenticación no sustituye ni debilita la autorización.
+
+Evidencia publicada:
+
+`f3eb118 feat: exigir reautenticacion en operaciones sensibles`
+
+Pruebas principales:
+
+- `SensitiveOperationReauthenticationTest`;
+- `LoginTest`;
+- `SessionManagementTest`;
+- `PersonApiWithdrawalTest`;
+- `PersonApiReinstatementTest`.
+
+El cierre global del bloque fue:
+
+`220 pruebas / 2373 assertions`
+
+## 9. Gobierno documental
 
 A partir del 8 de octubre:
 
@@ -158,11 +216,13 @@ A partir del 8 de octubre:
 - checkpoints son históricos;
 - no se crean ramas ni Pull Requests sin autorización explícita.
 
-## 9. Próximo bloque
+## 10. Próximo bloque
 
-Después de cerrar gestión básica de perfiles, rate limiting, endurecimiento de sesión/cookies, timeout absoluto de 8 horas y gestión/revocación manual de sesiones, el siguiente bloque recomendado es la reautenticación para operaciones sensibles.
+Después de cerrar gestión básica de perfiles, rate limiting, endurecimiento de sesión/cookies, timeout absoluto de 8 horas, gestión/revocación manual de sesiones y reautenticación para operaciones sensibles, el siguiente bloque recomendado es iniciar el frontend Angular y su integración SPA con el backend publicado.
 
-## 10. Regla de actualización
+La integración deberá respetar desde el inicio el flujo Sanctum stateful, CSRF, cookies con credenciales y la respuesta HTTP 423 para reautenticación de operaciones sensibles.
+
+## 11. Regla de actualización
 
 Agregar aquí solo hitos relevantes ya publicados.
 
