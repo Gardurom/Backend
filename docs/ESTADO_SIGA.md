@@ -6,7 +6,7 @@ Este estado refleja únicamente lo publicado en GitHub `main`.
 
 Commit de referencia:
 
-`bee9ca1 feat: agregar timeout absoluto de sesion`
+`bc9d17c feat: gestionar y revocar sesiones`
 
 ## 1. Plataforma
 
@@ -115,6 +115,11 @@ Implementado:
 - timeout absoluto de sesión de 8 horas;
 - registro de `siga_authenticated_at` al autenticar;
 - expiración absoluta con logout, invalidación de sesión, regeneración CSRF y HTTP 401;
+- `GET /api/sessions` para listar únicamente sesiones activas propias;
+- `DELETE /api/sessions/{session}` para revocar una sesión propia distinta de la actual;
+- `DELETE /api/sessions/others` para revocar todas las demás sesiones propias;
+- identificadores públicos HMAC-SHA256 sin exponer el ID real de sesión;
+- sesiones expiradas por inactividad no aparecen en el listado activo;
 - CORS con credenciales.
 
 No se usan PAT como mecanismo de la SPA.
@@ -219,7 +224,10 @@ Cobertura funcional relevante:
 - asignación y desasignación de perfiles;
 - rate limiting de login;
 - configuración segura de sesión/cookies;
-- timeout absoluto de sesión de 8 horas.
+- timeout absoluto de sesión de 8 horas;
+- gestión y revocación de sesiones;
+- protección de la sesión actual y aislamiento entre usuarios;
+- filtrado del límite exacto de inactividad.
 
 Controles de cierre:
 
@@ -240,13 +248,15 @@ Controles de hardening ya implementados:
 - cifrado de sesión;
 - `HttpOnly` y `SameSite=Lax`;
 - salvaguarda de `Secure` obligatoria en producción;
-- timeout absoluto de sesión de 8 horas.
+- timeout absoluto de sesión de 8 horas;
+- listado y revocación manual de sesiones propias con identificadores opacos;
+- conservación obligatoria de la sesión actual en los endpoints de administración;
+- filtrado de sesiones vencidas por inactividad.
 
 Permanecen como requisitos preproducción:
 
 - despliegue HTTPS y HSTS;
 - CSP y headers defensivos;
-- revocación y gestión de sesiones;
 - reautenticación para operaciones sensibles;
 - auditoría de seguridad;
 - MFA;
@@ -256,17 +266,16 @@ Passkeys/WebAuthn no se considera una mejora opcional indefinida.
 
 ## 12. Próximo bloque recomendado
 
-Con la gestión básica de perfiles, el rate limiting, el endurecimiento de sesión/cookies y el timeout absoluto de 8 horas cerrados, el siguiente bloque técnico recomendado es:
+Con la gestión básica de perfiles, el rate limiting, el endurecimiento de sesión/cookies, el timeout absoluto de 8 horas y la gestión/revocación manual de sesiones cerrados, el siguiente bloque técnico recomendado es:
 
-`gestión y revocación de sesiones`
+`reautenticación para operaciones sensibles`
 
 Después:
 
-1. reautenticación para operaciones sensibles;
-2. auditoría de autenticación;
-3. headers de seguridad;
-4. MFA/Passkeys antes de producción;
-5. iniciar frontend Angular e integración SPA.
+1. auditoría de autenticación;
+2. headers de seguridad;
+3. MFA/Passkeys antes de producción;
+4. iniciar frontend Angular e integración SPA.
 
 ## 13. Regla documental
 
