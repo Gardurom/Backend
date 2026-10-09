@@ -138,6 +138,10 @@ Controles ya implementados:
 - producción exige `Secure` para la cookie de sesión;
 - timeout absoluto de sesión de 8 horas mediante `siga.session.absolute`;
 - `siga_authenticated_at` se registra al autenticar y la expiración absoluta invalida la sesión;
+- administración de sesiones activas propias mediante endpoints autenticados;
+- IDs públicos opacos derivados con HMAC-SHA256, sin exponer el ID persistido;
+- revocación individual y masiva limitada al usuario autenticado, conservando la sesión actual;
+- sesiones vencidas por inactividad se excluyen del listado activo;
 - mínimo privilegio DB;
 - autorización central;
 - default-deny.
@@ -146,7 +150,6 @@ Controles obligatorios preproducción:
 
 - despliegue HTTPS/HSTS;
 - CSP/headers defensivos;
-- revocación y gestión de sesiones;
 - reautenticación para operaciones sensibles;
 - auditoría de eventos de autenticación;
 - MFA;
