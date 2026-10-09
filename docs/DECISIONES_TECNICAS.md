@@ -349,3 +349,30 @@ Operaciones futuras de alto impacto, como cambios de contraseña, correo, MFA, r
 Evidencia:
 
 `f3eb118 feat: exigir reautenticacion en operaciones sensibles`
+
+## 22. DT-019 — Angular y Tailwind CSS como base oficial del Frontend
+
+**Estado:** IMPLEMENTADA
+
+Angular es el framework oficial para el desarrollo del Frontend de la Plataforma Integral SIGA.
+
+Tailwind CSS es la tecnología oficial para la construcción, composición y mantenimiento de la interfaz visual y de los estilos del Frontend.
+
+Reglas:
+
+- Angular concentra la estructura, componentes, servicios y comportamiento de la aplicación web;
+- Tailwind CSS constituye la base de presentación de la interfaz;
+- los componentes visuales deberán utilizar Tailwind CSS como primera opción de implementación;
+- no se incorporará otro framework CSS en paralelo salvo necesidad técnica justificada, evaluación previa y decisión documentada;
+- el CSS personalizado deberá limitarse a necesidades que no puedan resolverse adecuadamente mediante Tailwind CSS o que correspondan a estilos globales justificados;
+- la interfaz deberá mantener criterios de accesibilidad, consistencia visual, diseño adaptable, mantenibilidad y reutilización;
+- Tailwind CSS no contendrá ni sustituirá reglas de negocio;
+- ocultar, mostrar o deshabilitar elementos de interfaz no constituye un mecanismo de autorización;
+- las validaciones, permisos y controles de seguridad continúan siendo responsabilidad del Backend;
+- Leaflet se incorporará para la integración cartográfica cuando corresponda al bloque funcional de mapas.
+
+Tecnologías vigentes de esta decisión:
+
+- Frontend: Angular 22.2.2;
+- interfaz y estilos: Tailwind CSS 4.3.3;
+- cartografía: Leaflet, con integración funcional pendiente.

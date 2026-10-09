@@ -17,7 +17,7 @@ SIGA se construye con:
 ## 2. Componentes
 
 ```text
-Angular SPA (pendiente)
+Angular SPA + Tailwind CSS
       |
       | HTTPS + CSRF + cookie de sesión
       v
@@ -44,16 +44,21 @@ LibreFS
 
 ## 3. Capa web
 
-Frontend previsto:
+Frontend implementado y en evolución:
 
-- Angular;
-- Leaflet;
+- Angular como framework oficial del Frontend;
+- Tailwind CSS como tecnología oficial para la interfaz visual y los estilos;
+- Leaflet para la integración cartográfica;
 - misma plataforma lógica que el backend;
 - autenticación SPA stateful con Sanctum;
 - manejo explícito de HTTP 423 para solicitar reautenticación antes de repetir una operación sensible;
 - uso de `POST /reauthenticate` sin sustituir los permisos resueltos por el backend.
 
 El frontend nunca es la autoridad final de permisos ni de reautenticación.
+
+Tailwind CSS pertenece a la capa de presentación. Su uso no sustituye validaciones, autorización, reglas de negocio ni controles de seguridad del Backend.
+
+No se incorporará otro framework CSS en paralelo salvo necesidad técnica justificada y decisión documentada.
 
 ## 4. Backend
 
@@ -116,6 +121,8 @@ La aplicación opera como `siga_app`.
 ## 8. Geoespacial
 
 PostGIS y GeoServer ya están preparados.
+
+La base del Frontend Angular está implementada.
 
 La integración funcional Angular + Leaflet + GeoServer sigue pendiente.
 
