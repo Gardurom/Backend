@@ -204,7 +204,14 @@ Controles ya implementados:
 - timeout absoluto de sesión de 8 horas;
 - el login registra `siga_authenticated_at` como inicio de la sesión absoluta;
 - al alcanzar 8 horas, la sesión se cierra, se invalida y la API responde HTTP 401;
-- sesiones existentes sin marca absoluta se inicializan de forma compatible en su primera petición con sesión.
+- sesiones existentes sin marca absoluta se inicializan de forma compatible en su primera petición con sesión;
+- el usuario autenticado puede listar únicamente sus sesiones activas;
+- los IDs de sesión expuestos por la API son opacos y se derivan mediante HMAC-SHA256;
+- el ID real almacenado en `system.sessions` no se expone;
+- una sesión propia distinta de la actual puede revocarse individualmente;
+- las demás sesiones propias pueden revocarse en conjunto conservando la sesión actual;
+- una sesión de otro usuario no puede revocarse desde estos endpoints;
+- las sesiones que alcanzan el límite de inactividad no se presentan como activas.
 
 Evidencia publicada:
 
@@ -214,13 +221,14 @@ Evidencia publicada:
 
 `bee9ca1 feat: agregar timeout absoluto de sesion`
 
+`bc9d17c feat: gestionar y revocar sesiones`
+
 Antes de producción permanecen requeridos:
 
 - HTTPS;
 - HSTS;
 - CSP;
 - headers defensivos;
-- revocación y gestión de sesiones;
 - reautenticación para operaciones sensibles;
 - auditoría de eventos de autenticación, incluido throttling;
 - MFA;
