@@ -77,7 +77,8 @@ Actualmente están publicados:
 - perfil predeterminado;
 - rate limiting específico del login;
 - endurecimiento básico de sesión/cookies;
-- timeout absoluto de sesión de 8 horas.
+- timeout absoluto de sesión de 8 horas;
+- gestión y revocación manual de sesiones propias.
 
 Frontend Angular sigue pendiente.
 
@@ -96,12 +97,14 @@ Ya están implementados y probados:
 - cifrado de sesión;
 - `HttpOnly` y `SameSite=Lax`;
 - salvaguarda que exige `Secure` para la cookie de sesión en producción;
-- timeout absoluto de sesión de 8 horas.
+- timeout absoluto de sesión de 8 horas;
+- listado de sesiones activas propias con identificadores públicos opacos;
+- revocación individual y masiva de otras sesiones propias conservando la actual;
+- exclusión de sesiones vencidas por inactividad del listado activo.
 
 Permanecen como controles obligatorios antes de producción:
 
 - despliegue HTTPS/HSTS;
-- revocación/gestión de sesiones;
 - reautenticación para operaciones sensibles;
 - auditoría de autenticación y throttling;
 - headers defensivos;
