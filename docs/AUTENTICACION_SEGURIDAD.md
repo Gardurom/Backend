@@ -80,6 +80,7 @@ Componentes confirmados en código:
 - rate limiting de reautenticación: 5 fallos en 60 segundos por usuario autenticado + dirección IP.
 - respuesta HTTP 423 cuando una operación sensible requiere reautenticación.
 - revocación individual y masiva de sesiones, BAJA de Persona y REINGRESO de Persona requieren reautenticación reciente.
+- comando `siga:bootstrap-admin` para crear exclusivamente el primer administrador cuando todavía no existen usuarios.
 
 Configuración versionada relevante:
 
@@ -287,7 +288,43 @@ Evidencia:
 
 La administración y revocación manual de sesiones y la reautenticación para operaciones sensibles ya están implementadas. Los disparadores automáticos por cambios críticos y su auditoría siguen pendientes.
 
-## 10. MFA y Passkeys/WebAuthn
+## 10. Política de contraseñas
+
+**Estado: VIGENTE / IMPLEMENTACIÓN PARCIAL**
+
+SIGA adopta una política uniforme de contraseñas basada en longitud y resistencia, evitando reglas artificiales de composición.
+
+Mientras la contraseña opere como factor único:
+
+- la longitud mínima objetivo es de **15 caracteres**;
+- el sistema debe permitir contraseñas o frases de contraseña de al menos **64 caracteres** de longitud máxima soportada;
+- no se exige obligatoriamente una combinación de mayúsculas, minúsculas, números y símbolos;
+- deben rechazarse contraseñas comunes, previsibles, conocidas como comprometidas, relacionadas trivialmente con SIGA o la institución, o derivadas de datos personales obvios cuando puedan identificarse razonablemente;
+- no existe caducidad periódica arbitraria únicamente por tiempo transcurrido;
+- las contraseñas nunca deben almacenarse en texto plano;
+- el hash debe permanecer centralizado en el mecanismo configurado por Laravel.
+
+La implementación general de rechazo de contraseñas comunes o comprometidas continúa pendiente y deberá aplicarse de forma centralizada a todos los flujos de creación, cambio y restablecimiento de credenciales.
+
+El bootstrap administrativo inicial aplica actualmente:
+
+- nombre obligatorio;
+- correo válido y normalizado;
+- longitud mínima de contraseña de 15 caracteres;
+- confirmación de contraseña en el comando interactivo;
+- almacenamiento mediante el mecanismo de hash configurado por Laravel;
+- creación únicamente cuando no existe ningún usuario;
+- asignación explícita de `ROL_ADMIN_SISTEMA`;
+- reversión transaccional si falla la asignación del rol.
+
+La contraseña del administrador no se acepta como argumento del comando y se solicita mediante entrada oculta.
+
+Evidencia:
+
+- `BootstrapAdminActionTest`;
+- `BootstrapAdminCommandTest`.
+
+## 11. MFA y Passkeys/WebAuthn
 
 **Estado: PLANIFICADO / REQUISITO PREPRODUCCIÓN**
 
@@ -303,7 +340,7 @@ SIGA deberá incorporar autenticación reforzada antes de producción:
 
 La implementación se realizará después de cerrar los bloques inmediatos del núcleo funcional, sin dejar de ser requisito de salida a producción.
 
-## 11. Headers de seguridad
+## 12. Headers de seguridad
 
 **Estado: PLANIFICADO**
 
@@ -316,7 +353,7 @@ Producción deberá incorporar como mínimo:
 - `Permissions-Policy`;
 - protección contra framing mediante `frame-ancestors`.
 
-## 12. Auditoría de autenticación
+## 13. Auditoría de autenticación
 
 **Estado: PLANIFICADO**
 
@@ -335,7 +372,7 @@ Deben registrarse de forma segura eventos relevantes, sin almacenar secretos:
 
 La tabla `system.activities` actual tiene un dominio de acciones limitado a Persona y no debe ampliarse informalmente.
 
-## 13. Secretos y configuración de producción
+## 14. Secretos y configuración de producción
 
 Requisitos:
 
@@ -355,7 +392,7 @@ Nunca versionar:
 - credenciales de base;
 - cookies o identificadores de sesión.
 
-## 14. Criterio de aceptación de seguridad
+## 15. Criterio de aceptación de seguridad
 
 Un control de seguridad solo se considerará implementado cuando exista:
 

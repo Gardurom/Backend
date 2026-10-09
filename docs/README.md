@@ -82,7 +82,7 @@ Actualmente están publicados:
 - reautenticación para operaciones sensibles mediante contraseña actual;
 - protección por reautenticación de revocación de sesiones, BAJA y REINGRESO.
 
-Frontend Angular sigue pendiente y constituye el siguiente bloque recomendado de integración.
+El frontend Angular + Tailwind CSS ya cuenta con una base implementada en su repositorio. La integración funcional con el backend, la interfaz de autenticación y la incorporación posterior de Leaflet/GeoServer continúan en evolución.
 
 ## 5. Seguridad
 
