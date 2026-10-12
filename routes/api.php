@@ -54,6 +54,13 @@ Route::post('/personas', [PersonController::class, 'store'])
         'siga.permission:personas.crear',
     ]);
 
+Route::get('/personas', [PersonController::class, 'index'])
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+        'siga.permission:personas.ver',
+    ]);
+
 Route::get('/personas/{id_persona}', [PersonController::class, 'show'])
     ->middleware([
         'auth:sanctum',

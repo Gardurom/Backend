@@ -8,11 +8,37 @@ use App\Actions\Persona\ReinstatePerson;
 use App\Actions\Persona\UpdatePerson;
 use App\Actions\Persona\WithdrawPerson;
 use App\Http\Controllers\Controller;
+use App\Models\Person;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PersonController extends Controller
 {
+    public function index(): JsonResponse
+    {
+        $persons = Person::query()
+            ->select([
+                'id_persona',
+                'num_expediente',
+                'nombres',
+                'apellido_paterno',
+                'apellido_materno',
+                'estatus',
+            ])
+            ->orderBy('num_expediente')
+            ->paginate(20);
+
+        return response()->json([
+            'data' => $persons->items(),
+            'meta' => [
+                'current_page' => $persons->currentPage(),
+                'per_page' => $persons->perPage(),
+                'last_page' => $persons->lastPage(),
+                'total' => $persons->total(),
+            ],
+        ]);
+    }
+
     public function store(
         Request $request,
         RegisterPerson $registerPerson
