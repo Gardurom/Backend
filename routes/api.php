@@ -1,14 +1,27 @@
 <?php
 
+use App\Authorization\PermissionResolver;
 use App\Http\Controllers\Api\PersonController;
 use App\Http\Controllers\Api\SessionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user()->load(
+Route::get('/user', function (
+    Request $request,
+    PermissionResolver $permissionResolver
+) {
+    $user = $request->user();
+
+    $user->load(
         'person:id_persona,nombres,apellido_paterno,apellido_materno'
     );
+
+    $user->setAttribute(
+        'permissions',
+        $permissionResolver->effectivePermissions($user)
+    );
+
+    return $user;
 })->middleware([
     'auth:sanctum',
     'siga.session.absolute',

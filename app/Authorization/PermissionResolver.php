@@ -53,4 +53,53 @@ class PermissionResolver
             ->resolve($user, $permission)
             ->allows();
     }
+
+    /**
+     * @return list<string>
+     */
+    public function effectivePermissions(
+        User $user
+    ): array {
+        return DB::table('system.user_roles as ur')
+            ->join(
+                'system.role_permissions as rp',
+                'rp.role_id',
+                '=',
+                'ur.role_id'
+            )
+            ->join(
+                'system.permissions as p',
+                'p.id',
+                '=',
+                'rp.permission_id'
+            )
+            ->where(
+                'ur.user_id',
+                $user->getKey()
+            )
+            ->orderBy('p.code')
+            ->get([
+                'p.code',
+                'rp.effect',
+            ])
+            ->groupBy('code')
+            ->filter(
+                function ($rules): bool {
+                    $hasAllow = $rules->contains(
+                        fn ($rule): bool =>
+                            $rule->effect === 'ALLOW'
+                    );
+
+                    $hasDeny = $rules->contains(
+                        fn ($rule): bool =>
+                            $rule->effect === 'DENY'
+                    );
+
+                    return $hasAllow && ! $hasDeny;
+                }
+            )
+            ->keys()
+            ->values()
+            ->all();
+    }
 }
