@@ -18,7 +18,7 @@
         <env name="APP_ENV" value="installation" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
         <env name="CACHE_STORE" value="array" force="true"/>
-        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <env name="SESSION_DRIVER" value="database" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
         <env name="MAIL_MAILER" value="array" force="true"/>
         <env name="BROADCAST_CONNECTION" value="null" force="true"/>

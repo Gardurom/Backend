@@ -8,6 +8,26 @@ use Tests\Functional\HttpFunctionalTestCase;
 
 class BootstrapAdminCommandTest extends HttpFunctionalTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->prepareEmptyUserState();
+    }
+
+    private function prepareEmptyUserState(): void
+    {
+        $this->db
+            ->table('system.users')
+            ->delete();
+
+        self::assertSame(
+            0,
+            User::query()->count(),
+            'El escenario del comando bootstrap debe iniciar sin usuarios dentro de la transacción de prueba.'
+        );
+    }
+
     public function test_crea_administrador_inicial_desde_artisan(): void
     {
         self::assertSame(

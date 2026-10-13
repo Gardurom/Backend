@@ -1,6 +1,6 @@
 # SIGA — Pruebas y calidad
 
-Última actualización: 2026-10-09
+Última actualización: 2026-10-12
 
 ## 1. Principio
 
@@ -87,28 +87,26 @@ Todas las suites finalizaron en verde antes del commit y push.
 Las pruebas funcionales utilizan:
 
 - `.env.installation`;
-- base `siga_installation_test`;
+- base de desarrollo `siga`;
 - login DB `siga_app`;
-- transacciones read-write dentro de la prueba;
-- rollback al terminar.
+- transacciones read-write dentro de cada prueba;
+- rollback obligatorio al terminar.
 
-No deben ejecutarse accidentalmente contra la base principal.
+Estas pruebas se ejecutan únicamente en el ambiente de desarrollo.
 
-## 4. Migraciones de prueba
+No existe una base PostgreSQL permanente separada exclusivamente para pruebas funcionales.
 
-Las migraciones de la base de pruebas utilizan:
+## 4. Migraciones
 
-`.env.installation-migration`
-
-Antes de migrar debe comprobarse:
-
-`DB_DATABASE=siga_installation_test`
-
-La base principal utiliza:
+Las migraciones estructurales de la base de desarrollo utilizan:
 
 `.env.migration`
 
-y debe verificarse explícitamente antes de ejecutar migraciones.
+Antes de migrar debe comprobarse explícitamente:
+
+`DB_DATABASE=siga`
+
+Las suites funcionales no crean ni mantienen una base auxiliar permanente. Validan el esquema ya migrado y revierten sus cambios mediante transacciones.
 
 ## 5. Controles de calidad
 

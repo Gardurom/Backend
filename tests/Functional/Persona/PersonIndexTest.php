@@ -183,6 +183,7 @@ class PersonIndexTest extends HttpFunctionalTestCase
                         'PERSONA PAGINACION %02d',
                         $index
                     ),
+                    'apellido_paterno' => 'PRUEBA',
                 ]);
         }
 
@@ -374,6 +375,7 @@ class PersonIndexTest extends HttpFunctionalTestCase
                         'PERSONA ORDEN %02d',
                         $index
                     ),
+                    'apellido_paterno' => 'PRUEBA',
                 ]);
         }
 

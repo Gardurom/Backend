@@ -39,9 +39,9 @@ abstract class HttpFunctionalTestCase extends TestCase
         );
 
         self::assertSame(
-            'siga_installation_test',
+            'siga',
             $identity->database_name,
-            'La conexion HTTP debe apuntar a siga_installation_test.'
+            'La conexion HTTP debe apuntar a siga.'
         );
 
         self::assertSame(

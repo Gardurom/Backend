@@ -76,8 +76,10 @@ class PersonRegistrationTest extends FunctionalTestCase
     {
         try {
             $this->db->insert(
-                'INSERT INTO institutional.persons (nombres) VALUES (?)',
-                ['']
+                'INSERT INTO institutional.persons
+                    (nombres, apellido_paterno)
+                 VALUES (?, ?)',
+                ['', 'APELLIDO PRUEBA']
             );
         } catch (QueryException $error) {
             self::assertSame(
@@ -101,11 +103,46 @@ class PersonRegistrationTest extends FunctionalTestCase
     private function registerPerson(): object
     {
         return $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-             VALUES (?)
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
              RETURNING id_persona, num_expediente, estatus,
                        fecha_alta, fecha_baja, created_at, updated_at',
-            ['PRUEBA FUNCIONAL PERSONA']
+            [
+                'PRUEBA FUNCIONAL PERSONA',
+                'APELLIDO PRUEBA',
+            ]
+        );
+    }
+
+    public function test_registration_rejects_person_without_surname(): void
+    {
+        try {
+            $this->db
+                ->table('institutional.persons')
+                ->insert([
+                    'nombres' => 'PERSONA SIN APELLIDOS',
+                    'apellido_paterno' => null,
+                    'apellido_materno' => null,
+                ]);
+        } catch (QueryException $error) {
+            self::assertSame(
+                '23514',
+                $error->getCode(),
+                'El rechazo debe proceder de una restriccion CHECK.'
+            );
+
+            self::assertStringContainsString(
+                'persons_apellidos_check',
+                $error->getMessage(),
+                'Debe intervenir la restriccion de apellidos.'
+            );
+
+            return;
+        }
+
+        self::fail(
+            'PostgreSQL permitio registrar una Persona sin apellidos.'
         );
     }
 }

@@ -27,10 +27,11 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
         ]);
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-             VALUES (?)
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
              RETURNING id_persona',
-            ['PERSONA PROTEGIDA ACTUALIZACION']
+            ['PERSONA PROTEGIDA ACTUALIZACION', 'PRUEBA']
         );
 
         $this->actingAs($user);
@@ -62,11 +63,13 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
         $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres, correo_personal)
-         VALUES (?, ?)
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno, correo_personal)
+         VALUES (?, ?, ?)
          RETURNING id_persona',
             [
                 'PERSONA ANTES DE ACTUALIZAR',
+                'PRUEBA',
                 'antes@example.test',
             ]
         );
@@ -114,10 +117,11 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
         $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-         VALUES (?)
-         RETURNING id_persona',
-            ['PERSONA NOMBRE ORIGINAL']
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            ['PERSONA NOMBRE ORIGINAL', 'PRUEBA']
         );
 
         $this->actingAs($user);
@@ -179,10 +183,11 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
         $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-         VALUES (?)
-         RETURNING id_persona',
-            ['PERSONA ESTATUS PROTEGIDO']
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            ['PERSONA ESTATUS PROTEGIDO', 'PRUEBA']
         );
 
         $this->actingAs($user);
@@ -230,10 +235,11 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
         ]);
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-         VALUES (?)
-         RETURNING id_persona',
-            ['PERSONA AUDITORIA ACTUALIZACION']
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            ['PERSONA AUDITORIA ACTUALIZACION', 'PRUEBA']
         );
 
         $this->actingAs($authenticatedUser);
@@ -283,10 +289,11 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
         $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-         VALUES (?)
-         RETURNING id_persona',
-            ['PERSONA VALIDACION SEXO']
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            ['PERSONA VALIDACION SEXO', 'PRUEBA']
         );
 
         $this->actingAs($user);
@@ -320,10 +327,11 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
         $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-         VALUES (?)
-         RETURNING id_persona',
-            ['PERSONA VALIDACION ESTADO CIVIL']
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            ['PERSONA VALIDACION ESTADO CIVIL', 'PRUEBA']
         );
 
         $this->actingAs($user);
@@ -357,10 +365,11 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
         $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-         VALUES (?)
-         RETURNING id_persona',
-            ['PERSONA VALIDACION FECHA NACIMIENTO']
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            ['PERSONA VALIDACION FECHA NACIMIENTO', 'PRUEBA']
         );
 
         $this->actingAs($user);
@@ -397,10 +406,11 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
         $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-         VALUES (?)
-         RETURNING id_persona',
-            ['PERSONA SIN CAMBIOS API']
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            ['PERSONA SIN CAMBIOS API', 'PRUEBA']
         );
 
         $this->actingAs($user);
@@ -436,6 +446,191 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
         self::assertFalse($exists);
     }
 
+    public function test_authenticated_user_cannot_remove_last_surname(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO VALIDACION APELLIDOS ACTUALIZACION',
+            'email' => 'persona.update.surname@siga.test',
+        ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
+        $person = $this->db->selectOne(
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            [
+                'PERSONA VALIDACION APELLIDOS',
+                'PRUEBA',
+            ]
+        );
+
+        $this->actingAs($user);
+
+        $csrfToken = 'csrf-token-persona-update-surname-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader('X-CSRF-TOKEN', $csrfToken)
+            ->patchJson(
+                '/api/personas/'.$person->id_persona,
+                [
+                    'apellido_paterno' => null,
+                ]
+            );
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('apellido_paterno');
+    }
+    public function test_authenticated_user_cannot_remove_last_maternal_surname(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO VALIDACION APELLIDO MATERNO ACTUALIZACION',
+            'email' => 'persona.update.maternal-surname@siga.test',
+        ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
+        $person = $this->db->selectOne(
+            'INSERT INTO institutional.persons
+                (nombres, apellido_materno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            [
+                'PERSONA VALIDACION APELLIDO MATERNO',
+                'PRUEBA',
+            ]
+        );
+
+        $this->actingAs($user);
+
+        $csrfToken = 'csrf-token-persona-update-maternal-surname-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader('X-CSRF-TOKEN', $csrfToken)
+            ->patchJson(
+                '/api/personas/'.$person->id_persona,
+                [
+                    'apellido_materno' => null,
+                ]
+            );
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('apellido_materno');
+    }
+    public function test_authenticated_user_can_replace_paternal_surname_with_maternal_surname(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO SUSTITUCION APELLIDO ACTUALIZACION',
+            'email' => 'persona.update.replace-surname@siga.test',
+        ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
+        $person = $this->db->selectOne(
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            [
+                'PERSONA SUSTITUCION APELLIDO',
+                'ORIGINAL',
+            ]
+        );
+
+        $this->actingAs($user);
+
+        $csrfToken = 'csrf-token-persona-update-replace-surname-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader('X-CSRF-TOKEN', $csrfToken)
+            ->patchJson(
+                '/api/personas/'.$person->id_persona,
+                [
+                    'apellido_paterno' => null,
+                    'apellido_materno' => 'NUEVO',
+                ]
+            );
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('apellido_paterno', null)
+            ->assertJsonPath('apellido_materno', 'NUEVO');
+
+        $storedPerson = $this->db
+            ->table('institutional.persons')
+            ->where('id_persona', $person->id_persona)
+            ->first();
+
+        self::assertNotNull($storedPerson);
+        self::assertNull($storedPerson->apellido_paterno);
+        self::assertSame(
+            'NUEVO',
+            $storedPerson->apellido_materno
+        );
+    }
+    public function test_authenticated_user_can_update_other_field_without_resending_existing_surname(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO PATCH PARCIAL PERSONA',
+            'email' => 'persona.update.partial@siga.test',
+        ]);
+
+        $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
+
+        $person = $this->db->selectOne(
+            'INSERT INTO institutional.persons
+                (nombres, apellido_materno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            [
+                'PERSONA PATCH PARCIAL',
+                'CONSERVADO',
+            ]
+        );
+
+        $this->actingAs($user);
+
+        $csrfToken = 'csrf-token-persona-update-partial-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader('X-CSRF-TOKEN', $csrfToken)
+            ->patchJson(
+                '/api/personas/'.$person->id_persona,
+                [
+                    'nombres' => 'PERSONA PATCH PARCIAL ACTUALIZADA',
+                ]
+            );
+
+        $response
+            ->assertOk()
+            ->assertJsonPath(
+                'nombres',
+                'PERSONA PATCH PARCIAL ACTUALIZADA'
+            )
+            ->assertJsonPath(
+                'apellido_paterno',
+                null
+            )
+            ->assertJsonPath(
+                'apellido_materno',
+                'CONSERVADO'
+            );
+    }
     private function assignRole(
         User $user,
         string $roleCode

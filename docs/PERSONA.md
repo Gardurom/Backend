@@ -1,6 +1,6 @@
 # SIGA — Persona
 
-Última actualización: 2026-10-09
+Última actualización: 2026-10-12
 
 ## 1. Propósito
 
@@ -70,6 +70,8 @@ Si el estatus no es BAJA, `fecha_baja` debe ser NULL.
 
 ## 5. Integridad
 
+- nombres obligatorio y no vacío;
+- al menos uno de `apellido_paterno` o `apellido_materno` debe existir; cada apellido puede ser NULL individualmente, pero no ambos simultáneamente;
 - expediente único;
 - CURP único cuando existe;
 - RFC único cuando existe;

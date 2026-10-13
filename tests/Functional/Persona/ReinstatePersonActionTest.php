@@ -125,6 +125,7 @@ class ReinstatePersonActionTest extends FunctionalTestCase
             ->insertGetId(
                 [
                     'nombres' => 'PERSONA ACTIVA SIN REINGRESO',
+                    'apellido_paterno' => 'PRUEBA',
                 ],
                 'id_persona'
             );
@@ -199,6 +200,7 @@ class ReinstatePersonActionTest extends FunctionalTestCase
             ->insertGetId(
                 [
                     'nombres' => 'PRUEBA REINGRESO PERSONA',
+                    'apellido_paterno' => 'PRUEBA',
                     'estatus' => 'BAJA',
                     'fecha_baja' => $this->db->raw(
                         'CURRENT_TIMESTAMP'

@@ -16,6 +16,7 @@ class UserPersonRelationshipTest extends HttpFunctionalTestCase
             ->insertGetId(
                 [
                     'nombres' => 'PERSONA USUARIO SIGA',
+                    'apellido_paterno' => 'PRUEBA',
                 ],
                 'id_persona'
             );
@@ -40,6 +41,7 @@ class UserPersonRelationshipTest extends HttpFunctionalTestCase
             ->insertGetId(
                 [
                     'nombres' => 'PERSONA CON CUENTA SIGA',
+                    'apellido_paterno' => 'PRUEBA',
                 ],
                 'id_persona'
             );
@@ -89,6 +91,7 @@ class UserPersonRelationshipTest extends HttpFunctionalTestCase
             ->insertGetId(
                 [
                     'nombres' => 'PERSONA USUARIO UNICO SIGA',
+                    'apellido_paterno' => 'PRUEBA',
                 ],
                 'id_persona'
             );

@@ -28,4 +28,3 @@ Thumbs.db
 
 .env.migration
 .env.installation
-.env.installation-migration

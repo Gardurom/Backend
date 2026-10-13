@@ -26,13 +26,15 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (
                 nombres,
+                apellido_paterno,
                 estatus,
                 fecha_baja
             )
-            VALUES (?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
             RETURNING id_persona',
             [
                 'PERSONA PROTEGIDA REINGRESO',
+                'PRUEBA',
                 'BAJA',
             ]
         );
@@ -68,14 +70,16 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
 
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (
-            nombres,
-            estatus,
-            fecha_baja
-        )
-        VALUES (?, ?, CURRENT_TIMESTAMP)
-        RETURNING id_persona',
+                nombres,
+                apellido_paterno,
+                estatus,
+                fecha_baja
+            )
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            RETURNING id_persona',
             [
                 'PERSONA PARA REINGRESO API',
+                'PRUEBA',
                 'BAJA',
             ]
         );
@@ -153,14 +157,16 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
 
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (
-            nombres,
-            estatus,
-            fecha_baja
-        )
-        VALUES (?, ?, CURRENT_TIMESTAMP)
-        RETURNING id_persona',
+                nombres,
+                apellido_paterno,
+                estatus,
+                fecha_baja
+            )
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            RETURNING id_persona',
             [
                 'PERSONA REINGRESO REPETIDO API',
+                'PRUEBA',
                 'BAJA',
             ]
         );
@@ -231,14 +237,16 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
 
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (
-            nombres,
-            estatus,
-            fecha_baja
-        )
-        VALUES (?, ?, CURRENT_TIMESTAMP)
-        RETURNING id_persona',
+                nombres,
+                apellido_paterno,
+                estatus,
+                fecha_baja
+            )
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            RETURNING id_persona',
             [
                 'PERSONA AUDITORIA REINGRESO API',
+                'PRUEBA',
                 'BAJA',
             ]
         );
@@ -295,13 +303,15 @@ class PersonApiReinstatementTest extends HttpFunctionalTestCase
         $person = $this->db->selectOne(
             'INSERT INTO institutional.persons (
                 nombres,
+                apellido_paterno,
                 estatus,
                 fecha_baja
             )
-            VALUES (?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
             RETURNING id_persona',
             [
                 'PERSONA REINGRESO SENSIBLE API',
+                'PRUEBA',
                 'BAJA',
             ]
         );

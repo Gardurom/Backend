@@ -32,6 +32,7 @@ class AuthenticatedUserTest extends HttpFunctionalTestCase
             ->insertGetId(
                 [
                     'nombres' => 'PERSONA AUTENTICADA SIGA',
+                    'apellido_paterno' => 'PRUEBA',
                 ],
                 'id_persona'
             );

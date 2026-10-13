@@ -40,7 +40,7 @@ try {
     if ($Entorno -eq "PruebaInstalacion") {
         foreach ($nombreArchivo in @(
             ".env.installation",
-            ".env.installation-migration"
+            ".env.migration"
         )) {
             $rutaEntorno = Join-Path $raizProyecto $nombreArchivo
 
@@ -58,8 +58,6 @@ try {
         if ([Environment]::GetEnvironmentVariable("APP_CONFIG_CACHE", "Process")) {
             throw "Existe una ruta personalizada APP_CONFIG_CACHE. Debemos revisarla antes de ejecutar las pruebas."
         }
-
-        $entornoMigracion = "installation-migration"
     }
 
     $baterias = @()

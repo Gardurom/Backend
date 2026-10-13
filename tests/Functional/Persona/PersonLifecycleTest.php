@@ -107,10 +107,14 @@ class PersonLifecycleTest extends FunctionalTestCase
     private function registerPerson(): object
     {
         return $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-             VALUES (?)
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
              RETURNING id_persona, num_expediente, fecha_alta',
-            ['PRUEBA FUNCIONAL CICLO PERSONA']
+            [
+                'PRUEBA FUNCIONAL CICLO PERSONA',
+                'PRUEBA',
+            ]
         );
     }
 

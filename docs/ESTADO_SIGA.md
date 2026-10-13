@@ -1,6 +1,6 @@
 # SIGA — Estado técnico del proyecto
 
-Última actualización: 2026-10-09
+Última actualización: 2026-10-12
 
 Este estado refleja únicamente lo publicado en GitHub `main`.
 
@@ -21,10 +21,9 @@ Commit de referencia:
 - Windows/PowerShell;
 - sin Docker.
 
-Bases:
+Base de desarrollo:
 
-- `siga`;
-- `siga_installation_test`.
+- `siga`.
 
 ## 2. Infraestructura PostgreSQL
 

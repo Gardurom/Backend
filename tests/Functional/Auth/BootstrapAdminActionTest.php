@@ -13,6 +13,26 @@ use Tests\Functional\FunctionalTestCase;
 
 class BootstrapAdminActionTest extends FunctionalTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->prepareEmptyUserState();
+    }
+
+    private function prepareEmptyUserState(): void
+    {
+        $this->db
+            ->table('system.users')
+            ->delete();
+
+        self::assertSame(
+            0,
+            User::query()->count(),
+            'El escenario de bootstrap debe iniciar sin usuarios dentro de la transacción de prueba.'
+        );
+    }
+
     public function test_crea_primer_administrador_sin_persona_asociada(): void
     {
         self::assertSame(

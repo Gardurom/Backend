@@ -48,6 +48,18 @@ class PersonController extends Controller
 
         $request->validate([
             'nombres' => ['required', 'string', 'max:150'],
+            'apellido_paterno' => [
+                'nullable',
+                'string',
+                'max:100',
+                'required_without:apellido_materno',
+            ],
+            'apellido_materno' => [
+                'nullable',
+                'string',
+                'max:100',
+                'required_without:apellido_paterno',
+            ],
             'sexo' => [
                 'nullable',
                 'string',
@@ -93,8 +105,22 @@ class PersonController extends Controller
         UpdatePerson $updatePerson
     ): JsonResponse {
 
-        $request->validate([
+        $currentPerson = Person::query()->findOrFail($idPersona);
+
+        $validated = $request->validate([
             'nombres' => ['sometimes', 'required', 'string', 'max:150'],
+            'apellido_paterno' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:100',
+            ],
+            'apellido_materno' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:100',
+            ],
             'sexo' => [
                 'sometimes',
                 'nullable',
@@ -114,6 +140,46 @@ class PersonController extends Controller
                 'before_or_equal:'.now('America/Mexico_City')->toDateString(),
             ],
         ]);
+
+        $apellidoPaterno = array_key_exists(
+            'apellido_paterno',
+            $validated
+        )
+            ? $validated['apellido_paterno']
+            : $currentPerson->apellido_paterno;
+
+        $apellidoMaterno = array_key_exists(
+            'apellido_materno',
+            $validated
+        )
+            ? $validated['apellido_materno']
+            : $currentPerson->apellido_materno;
+
+        $sinApellidoPaterno = $apellidoPaterno === null
+            || trim($apellidoPaterno) === '';
+
+        $sinApellidoMaterno = $apellidoMaterno === null
+            || trim($apellidoMaterno) === '';
+
+        if ($sinApellidoPaterno && $sinApellidoMaterno) {
+            $errors = [];
+
+            if (array_key_exists('apellido_paterno', $validated)) {
+                $errors['apellido_paterno'] = [
+                    'La Persona debe conservar al menos un apellido.',
+                ];
+            }
+
+            if (array_key_exists('apellido_materno', $validated)) {
+                $errors['apellido_materno'] = [
+                    'La Persona debe conservar al menos un apellido.',
+                ];
+            }
+
+            throw \Illuminate\Validation\ValidationException::withMessages(
+                $errors
+            );
+        }
 
         $person = $updatePerson->execute(
             (int) $request->user()->getAuthIdentifier(),

@@ -167,6 +167,7 @@ class WithdrawPersonActionTest extends FunctionalTestCase
             ->insertGetId(
                 [
                     'nombres' => 'PRUEBA BAJA PERSONA',
+                    'apellido_paterno' => 'PRUEBA',
                 ],
                 'id_persona'
             );

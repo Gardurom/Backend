@@ -165,7 +165,12 @@ class UpdatePersonActionTest extends FunctionalTestCase
         return (string) $this->db
             ->table('institutional.persons')
             ->insertGetId(
-                $attributes,
+                array_merge(
+                    [
+                        'apellido_paterno' => 'PRUEBA',
+                    ],
+                    $attributes
+                ),
                 'id_persona'
             );
     }

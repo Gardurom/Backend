@@ -24,10 +24,11 @@ class PersonApiShowTest extends HttpFunctionalTestCase
         ]);
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-             VALUES (?)
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
              RETURNING id_persona',
-            ['PERSONA PROTEGIDA API']
+            ['PERSONA PROTEGIDA API', 'PRUEBA']
         );
 
         $this->actingAs($user);
@@ -52,10 +53,11 @@ class PersonApiShowTest extends HttpFunctionalTestCase
         );
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-             VALUES (?)
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
              RETURNING id_persona',
-            ['PERSONA CONSULTADA API']
+            ['PERSONA CONSULTADA API', 'PRUEBA']
         );
 
         $this->actingAs($user);
@@ -100,10 +102,11 @@ class PersonApiShowTest extends HttpFunctionalTestCase
         );
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-             VALUES (?)
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
              RETURNING id_persona',
-            ['PERSONA DENEGADA POR REGLA EXPLICITA']
+            ['PERSONA DENEGADA POR REGLA EXPLICITA', 'PRUEBA']
         );
 
         $this->actingAs($user);

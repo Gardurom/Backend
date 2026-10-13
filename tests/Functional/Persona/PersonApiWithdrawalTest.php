@@ -24,10 +24,11 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
         ]);
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-             VALUES (?)
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
              RETURNING id_persona',
-            ['PERSONA PROTEGIDA BAJA']
+            ['PERSONA PROTEGIDA BAJA', 'PRUEBA']
         );
 
         $this->actingAs($user);
@@ -60,10 +61,11 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
         $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-         VALUES (?)
-         RETURNING id_persona',
-            ['PERSONA PARA BAJA API']
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            ['PERSONA PARA BAJA API', 'PRUEBA']
         );
 
         $this->actingAs($user);
@@ -138,10 +140,11 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
         $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-         VALUES (?)
-         RETURNING id_persona',
-            ['PERSONA BAJA REPETIDA API']
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            ['PERSONA BAJA REPETIDA API', 'PRUEBA']
         );
 
         $this->actingAs($user);
@@ -208,10 +211,11 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
         ]);
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-         VALUES (?)
-         RETURNING id_persona',
-            ['PERSONA AUDITORIA BAJA API']
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            ['PERSONA AUDITORIA BAJA API', 'PRUEBA']
         );
 
         $this->actingAs($authenticatedUser);
@@ -264,10 +268,11 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
         $this->assignRole($user, 'ROL_GESTOR_PERSONAS');
 
         $person = $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-             VALUES (?)
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
              RETURNING id_persona',
-            ['PERSONA BAJA SENSIBLE API']
+            ['PERSONA BAJA SENSIBLE API', 'PRUEBA']
         );
 
         $this->actingAs($user);

@@ -77,6 +77,7 @@ class CreateUserActionTest extends FunctionalTestCase
             ->insertGetId(
                 [
                     'nombres' => 'PERSONA CUENTA UNICA',
+                    'apellido_paterno' => 'PRUEBA',
                 ],
                 'id_persona'
             );
@@ -116,6 +117,7 @@ class CreateUserActionTest extends FunctionalTestCase
             ->insertGetId(
                 [
                     'nombres' => 'PRIMERA PERSONA',
+                    'apellido_paterno' => 'PRUEBA',
                 ],
                 'id_persona'
             );
@@ -125,6 +127,7 @@ class CreateUserActionTest extends FunctionalTestCase
             ->insertGetId(
                 [
                     'nombres' => 'SEGUNDA PERSONA',
+                    'apellido_paterno' => 'PRUEBA',
                 ],
                 'id_persona'
             );
@@ -164,6 +167,7 @@ class CreateUserActionTest extends FunctionalTestCase
             ->insertGetId(
                 [
                     'nombres' => 'PERSONA LOGIN',
+                    'apellido_paterno' => 'PRUEBA',
                 ],
                 'id_persona'
             );

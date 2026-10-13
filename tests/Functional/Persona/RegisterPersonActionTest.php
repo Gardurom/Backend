@@ -90,6 +90,7 @@ class RegisterPersonActionTest extends FunctionalTestCase
                 PHP_INT_MAX,
                 [
                     'nombres' => 'PRUEBA ROLLBACK AUDITORIA',
+                    'apellido_paterno' => 'PRUEBA',
                 ]
             );
         } catch (QueryException $error) {

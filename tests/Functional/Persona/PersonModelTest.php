@@ -13,6 +13,7 @@ class PersonModelTest extends FunctionalTestCase
         $id = $this->db->table('institutional.persons')
             ->insertGetId([
                 'nombres' => 'PRUEBA MODELO PERSONA',
+                'apellido_paterno' => 'PRUEBA',
             ], 'id_persona');
 
         $person = Person::find($id);
@@ -34,6 +35,7 @@ class PersonModelTest extends FunctionalTestCase
         $id = $this->db->table('institutional.persons')
             ->insertGetId([
                 'nombres' => 'PRUEBA CASTS PERSONA',
+                'apellido_paterno' => 'PRUEBA',
                 'fecha_nacimiento' => '2000-01-02',
             ], 'id_persona');
 

@@ -1,12 +1,11 @@
 # SIGA — Base de datos
 
-Última actualización: 2026-10-09
+Última actualización: 2026-10-12
 
 ## 1. Plataforma
 
 - PostgreSQL 18.4.
-- Base principal: `siga`.
-- Base de pruebas: `siga_installation_test`.
+- Base de desarrollo: `siga`.
 - PostGIS habilitado.
 
 ## 2. Roles

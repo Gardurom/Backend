@@ -64,8 +64,10 @@ class PersonTransactionTest extends FunctionalTestCase
 
         try {
             $this->db->insert(
-                'INSERT INTO institutional.persons (nombres) VALUES (?)',
-                ['']
+                'INSERT INTO institutional.persons
+                    (nombres, apellido_paterno)
+                 VALUES (?, ?)',
+                ['', 'PRUEBA']
             );
         } catch (QueryException $error) {
             self::assertSame('23514', $error->getCode());
@@ -97,10 +99,14 @@ class PersonTransactionTest extends FunctionalTestCase
     private function registerPerson(): object
     {
         return $this->db->selectOne(
-            'INSERT INTO institutional.persons (nombres)
-             VALUES (?)
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
              RETURNING id_persona, num_expediente',
-            ['PRUEBA FUNCIONAL TRANSACCION']
+            [
+                'PRUEBA FUNCIONAL TRANSACCION',
+                'PRUEBA',
+            ]
         );
     }
 }

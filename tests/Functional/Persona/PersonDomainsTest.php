@@ -15,6 +15,7 @@ class PersonDomainsTest extends FunctionalTestCase
     ): void {
         $attributes = [
             'nombres' => 'PRUEBA FUNCIONAL DOMINIOS',
+            'apellido_paterno' => 'PRUEBA',
             $field => $value,
         ];
 
@@ -68,6 +69,7 @@ class PersonDomainsTest extends FunctionalTestCase
             function () use ($field, $value): void {
                 $this->db->table('institutional.persons')->insert([
                     'nombres' => 'PRUEBA FUNCIONAL DOMINIOS',
+                    'apellido_paterno' => 'PRUEBA',
                     $field => $value,
                 ]);
             },
@@ -100,9 +102,10 @@ class PersonDomainsTest extends FunctionalTestCase
     {
         $person = $this->db->selectOne(
             "INSERT INTO institutional.persons (
-                nombres, fecha_nacimiento
+                nombres, apellido_paterno, fecha_nacimiento
              )
              VALUES (
+                ?,
                 ?,
                 (
                     transaction_timestamp()
@@ -114,7 +117,10 @@ class PersonDomainsTest extends FunctionalTestCase
                     transaction_timestamp()
                     AT TIME ZONE 'America/Mexico_City'
                 )::DATE AS fecha_correcta",
-            ['PRUEBA FUNCIONAL FECHA ACTUAL']
+            [
+                'PRUEBA FUNCIONAL FECHA ACTUAL',
+                'PRUEBA',
+            ]
         );
 
         self::assertNotNull($person);
@@ -127,16 +133,20 @@ class PersonDomainsTest extends FunctionalTestCase
             function (): void {
                 $this->db->insert(
                     "INSERT INTO institutional.persons (
-                        nombres, fecha_nacimiento
+                        nombres, apellido_paterno, fecha_nacimiento
                      )
                      VALUES (
+                        ?,
                         ?,
                         (
                             transaction_timestamp()
                             AT TIME ZONE 'America/Mexico_City'
                         )::DATE + 1
                      )",
-                    ['PRUEBA FUNCIONAL FECHA FUTURA']
+                    [
+                        'PRUEBA FUNCIONAL FECHA FUTURA',
+                        'PRUEBA',
+                    ]
                 );
             },
             'persons_fecha_nacimiento_check'

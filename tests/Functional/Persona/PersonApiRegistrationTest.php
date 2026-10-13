@@ -158,6 +158,7 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson('/api/personas', [
                 'nombres' => ' PERSONA CON ESPACIOS ',
+                'apellido_paterno' => 'PRUEBA',
             ]);
 
         $response
@@ -288,6 +289,7 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson('/api/personas', [
                 'nombres' => 'PERSONA ESTATUS PROTEGIDO',
+                'apellido_paterno' => 'PRUEBA',
                 'estatus' => 'BAJA',
             ]);
 
@@ -332,6 +334,7 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
             ->withHeader('X-CSRF-TOKEN', $csrfToken)
             ->postJson('/api/personas', [
                 'nombres' => 'PERSONA AUDITORIA SEGURA',
+                'apellido_paterno' => 'PRUEBA',
                 'id_usuario' => $otherUser->id,
             ]);
 
@@ -355,6 +358,83 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
             $otherUser->id,
             $activity->id_usuario
         );
+    }
+
+    public function test_authenticated_user_cannot_register_person_without_surname(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO VALIDACION APELLIDOS',
+            'email' => 'persona.surname@siga.test',
+        ]);
+
+        $this->assignRole(
+            $user,
+            'ROL_GESTOR_PERSONAS'
+        );
+
+        $this->actingAs($user);
+
+        $csrfToken = 'csrf-token-persona-surname-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader(
+                'X-CSRF-TOKEN',
+                $csrfToken
+            )
+            ->postJson('/api/personas', [
+                'nombres' => 'PERSONA SIN APELLIDOS',
+            ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'apellido_paterno',
+                'apellido_materno',
+            ]);
+    }
+
+    public function test_authenticated_user_can_register_person_with_only_maternal_surname(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO APELLIDO MATERNO',
+            'email' => 'persona.maternal-surname@siga.test',
+        ]);
+
+        $this->assignRole(
+            $user,
+            'ROL_GESTOR_PERSONAS'
+        );
+
+        $this->actingAs($user);
+
+        $csrfToken = 'csrf-token-persona-maternal-surname-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader(
+                'X-CSRF-TOKEN',
+                $csrfToken
+            )
+            ->postJson('/api/personas', [
+                'nombres' => 'PERSONA APELLIDO MATERNO',
+                'apellido_materno' => 'PRUEBA',
+            ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath(
+                'apellido_paterno',
+                null
+            )
+            ->assertJsonPath(
+                'apellido_materno',
+                'PRUEBA'
+            );
     }
 
     private function assignRole(

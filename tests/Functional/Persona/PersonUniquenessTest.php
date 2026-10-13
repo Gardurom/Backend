@@ -117,7 +117,10 @@ class PersonUniquenessTest extends FunctionalTestCase
     {
         return $this->db->table('institutional.persons')->insertGetId(
             array_merge(
-                ['nombres' => 'PRUEBA FUNCIONAL UNICIDAD'],
+                [
+                    'nombres' => 'PRUEBA FUNCIONAL UNICIDAD',
+                    'apellido_paterno' => 'PRUEBA',
+                ],
                 $attributes
             ),
             'id_persona'
