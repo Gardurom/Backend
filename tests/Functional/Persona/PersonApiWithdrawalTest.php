@@ -99,6 +99,16 @@ class PersonApiWithdrawalTest extends HttpFunctionalTestCase
         self::assertNotNull(
             $response->json('fecha_baja')
         );
+
+        $withdrawnAt = \Illuminate\Support\Carbon::parse(
+            $response->json('fecha_baja')
+        );
+
+        self::assertLessThanOrEqual(
+            5,
+            abs($withdrawnAt->diffInSeconds(now())),
+            'La fecha de baja debe corresponder al instante real de la operación.'
+        );
     }
 
     public function test_authenticated_user_receives_not_found_when_withdrawing_missing_person(): void
