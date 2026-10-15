@@ -619,86 +619,94 @@ class SessionManagementTest extends HttpFunctionalTestCase
 
     public function test_expired_idle_session_is_not_listed(): void
     {
-        $user = User::factory()->create([
-            'name' => 'Usuario Sesion Expirada SIGA',
-            'email' => 'sesion.expirada@siga.test',
-        ]);
+        $originalLottery = config('session.lottery');
 
-        $this->actingAs($user);
+        config()->set('session.lottery', [0, 100]);
 
-        $currentSessionId = str_repeat('7', 40);
-        $expiredSessionId = str_repeat('8', 40);
-
-        $now = now()->timestamp;
-
-        $session = $this->app['session']->driver();
-
-        $session->setId($currentSessionId);
-        $session->start();
-
-        $session->put([
-            'siga_authenticated_at' => $now,
-        ]);
-
-        $session->save();
-
-        $updated = $this->db
-            ->table('system.sessions')
-            ->where('id', $currentSessionId)
-            ->update([
-                'user_id' => $user->id,
-                'ip_address' => '203.0.113.100',
-                'user_agent' => 'SIGA Current Active Browser',
-                'last_activity' => $now,
+        try {
+            $user = User::factory()->create([
+                'name' => 'Usuario Sesion Expirada SIGA',
+                'email' => 'sesion.expirada@siga.test',
             ]);
 
-        self::assertSame(
-            1,
-            $updated,
-            'La sesión actual debe existir antes de comprobar sesiones expiradas.'
-        );
+            $this->actingAs($user);
 
-        $this->db->table('system.sessions')->insert([
-            'id' => $expiredSessionId,
-            'user_id' => $user->id,
-            'ip_address' => '203.0.113.101',
-            'user_agent' => 'SIGA Expired Browser',
-            'payload' => 'test-payload-expired',
-            'last_activity' => $now - ((30 * 60) + 1),
-        ]);
+            $currentSessionId = str_repeat('7', 40);
+            $expiredSessionId = str_repeat('8', 40);
 
-        $response = $this
-            ->withCredentials()
-            ->withCookie(
-                (string) config('session.cookie'),
-                $currentSessionId
-            )
-            ->withHeader('Origin', 'http://localhost')
-            ->getJson('/api/sessions');
+            $now = now()->timestamp;
 
-        $response
-            ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonFragment([
-                'ip_address' => '203.0.113.100',
-                'user_agent' => 'SIGA Current Active Browser',
-                'current' => true,
-            ])
-            ->assertJsonMissing([
-                'ip_address' => '203.0.113.101',
-            ])
-            ->assertJsonMissing([
-                'user_agent' => 'SIGA Expired Browser',
+            $session = $this->app['session']->driver();
+
+            $session->setId($currentSessionId);
+            $session->start();
+
+            $session->put([
+                'siga_authenticated_at' => $now,
             ]);
 
-        self::assertSame(
-            1,
-            $this->db
+            $session->save();
+
+            $updated = $this->db
                 ->table('system.sessions')
-                ->where('id', $expiredSessionId)
-                ->count(),
-            'La prueba debe demostrar filtrado sin depender del garbage collector.'
-        );
+                ->where('id', $currentSessionId)
+                ->update([
+                    'user_id' => $user->id,
+                    'ip_address' => '203.0.113.100',
+                    'user_agent' => 'SIGA Current Active Browser',
+                    'last_activity' => $now,
+                ]);
+
+            self::assertSame(
+                1,
+                $updated,
+                'La sesión actual debe existir antes de comprobar sesiones expiradas.'
+            );
+
+            $this->db->table('system.sessions')->insert([
+                'id' => $expiredSessionId,
+                'user_id' => $user->id,
+                'ip_address' => '203.0.113.101',
+                'user_agent' => 'SIGA Expired Browser',
+                'payload' => 'test-payload-expired',
+                'last_activity' => $now - ((30 * 60) + 1),
+            ]);
+
+            $response = $this
+                ->withCredentials()
+                ->withCookie(
+                    (string) config('session.cookie'),
+                    $currentSessionId
+                )
+                ->withHeader('Origin', 'http://localhost')
+                ->getJson('/api/sessions');
+
+            $response
+                ->assertOk()
+                ->assertJsonCount(1, 'data')
+                ->assertJsonFragment([
+                    'ip_address' => '203.0.113.100',
+                    'user_agent' => 'SIGA Current Active Browser',
+                    'current' => true,
+                ])
+                ->assertJsonMissing([
+                    'ip_address' => '203.0.113.101',
+                ])
+                ->assertJsonMissing([
+                    'user_agent' => 'SIGA Expired Browser',
+                ]);
+
+            self::assertSame(
+                1,
+                $this->db
+                    ->table('system.sessions')
+                    ->where('id', $expiredSessionId)
+                    ->count(),
+                'La prueba debe demostrar filtrado sin depender del garbage collector.'
+            );
+        } finally {
+            config()->set('session.lottery', $originalLottery);
+        }
     }
 
     public function test_idle_timeout_boundary_excludes_exact_limit_and_keeps_session_one_second_before_limit(): void
