@@ -3,6 +3,7 @@
 use App\Authorization\PermissionResolver;
 use App\Http\Controllers\Api\PersonController;
 use App\Http\Controllers\Api\SessionController;
+use App\Http\Controllers\Api\UserProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +27,12 @@ Route::get('/user', function (
     'auth:sanctum',
     'siga.session.absolute',
 ]);
+
+Route::get('/user/profiles', [UserProfileController::class, 'index'])
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+    ]);
 
 Route::get('/sessions', [SessionController::class, 'index'])
     ->middleware([
