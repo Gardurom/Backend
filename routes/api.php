@@ -34,6 +34,16 @@ Route::get('/user/profiles', [UserProfileController::class, 'index'])
         'siga.session.absolute',
     ]);
 
+Route::put(
+    '/user/profiles/{profile}/default',
+    [UserProfileController::class, 'setDefault']
+)
+    ->whereNumber('profile')
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+    ]);
+
 Route::get('/sessions', [SessionController::class, 'index'])
     ->middleware([
         'auth:sanctum',

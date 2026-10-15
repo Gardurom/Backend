@@ -176,4 +176,224 @@ class UserProfilesApiTest extends HttpFunctionalTestCase
                 'data' => [],
             ]);
     }
+
+    public function test_usuario_puede_establecer_como_predeterminado_un_perfil_asignado(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO CAMBIO PERFIL',
+            'email' => 'profiles.default@siga.test',
+        ]);
+
+        $personasId = $this->db
+            ->table('system.profiles')
+            ->where('code', 'PERFIL_PERSONAS')
+            ->value('id');
+
+        $auditId = $this->db
+            ->table('system.profiles')
+            ->where('code', 'PERFIL_AUDITORIA')
+            ->value('id');
+
+        self::assertNotNull($personasId);
+        self::assertNotNull($auditId);
+
+        $now = now();
+
+        $this->db
+            ->table('system.user_profiles')
+            ->insert([
+                [
+                    'user_id' => $user->id,
+                    'profile_id' => $personasId,
+                    'is_default' => true,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+                [
+                    'user_id' => $user->id,
+                    'profile_id' => $auditId,
+                    'is_default' => false,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+            ]);
+
+        $this->actingAs($user);
+
+        $response = $this->putJson(
+            "/api/user/profiles/{$auditId}/default"
+        );
+
+        $response
+            ->assertOk()
+            ->assertJsonPath(
+                'data.code',
+                'PERFIL_AUDITORIA'
+            )
+            ->assertJsonPath(
+                'data.is_default',
+                true
+            );
+
+        $assignments = $this->db
+            ->table('system.user_profiles')
+            ->where('user_id', $user->id)
+            ->pluck('is_default', 'profile_id');
+
+        self::assertFalse(
+            (bool) $assignments[$personasId]
+        );
+
+        self::assertTrue(
+            (bool) $assignments[$auditId]
+        );
+    }
+
+    public function test_usuario_no_puede_establecer_como_predeterminado_un_perfil_no_asignado(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO PERFIL NO ASIGNADO',
+            'email' => 'profiles.unassigned@siga.test',
+        ]);
+
+        $personasId = $this->db
+            ->table('system.profiles')
+            ->where('code', 'PERFIL_PERSONAS')
+            ->value('id');
+
+        $administrationId = $this->db
+            ->table('system.profiles')
+            ->where('code', 'PERFIL_ADMINISTRACION')
+            ->value('id');
+
+        self::assertNotNull($personasId);
+        self::assertNotNull($administrationId);
+
+        $this->db
+            ->table('system.user_profiles')
+            ->insert([
+                'user_id' => $user->id,
+                'profile_id' => $personasId,
+                'is_default' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $this->actingAs($user);
+
+        $response = $this->putJson(
+            "/api/user/profiles/{$administrationId}/default"
+        );
+
+        $response->assertNotFound();
+
+        $assignments = $this->db
+            ->table('system.user_profiles')
+            ->where('user_id', $user->id)
+            ->get();
+
+        self::assertCount(1, $assignments);
+
+        self::assertSame(
+            (int) $personasId,
+            (int) $assignments->first()->profile_id
+        );
+
+        self::assertTrue(
+            (bool) $assignments->first()->is_default
+        );
+    }
+
+    public function test_usuario_no_autenticado_no_puede_cambiar_perfil_predeterminado(): void
+    {
+        $profileId = $this->db
+            ->table('system.profiles')
+            ->where('code', 'PERFIL_PERSONAS')
+            ->value('id');
+
+        self::assertNotNull($profileId);
+
+        $response = $this->putJson(
+            "/api/user/profiles/{$profileId}/default"
+        );
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_cambiar_a_perfil_administracion_no_modifica_permisos_efectivos(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO CAMBIO PERFIL SIN PERMISOS',
+            'email' => 'profiles.permissions@siga.test',
+        ]);
+
+        $personasId = $this->db
+            ->table('system.profiles')
+            ->where('code', 'PERFIL_PERSONAS')
+            ->value('id');
+
+        $administrationId = $this->db
+            ->table('system.profiles')
+            ->where('code', 'PERFIL_ADMINISTRACION')
+            ->value('id');
+
+        self::assertNotNull($personasId);
+        self::assertNotNull($administrationId);
+
+        $now = now();
+
+        $this->db
+            ->table('system.user_profiles')
+            ->insert([
+                [
+                    'user_id' => $user->id,
+                    'profile_id' => $personasId,
+                    'is_default' => true,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+                [
+                    'user_id' => $user->id,
+                    'profile_id' => $administrationId,
+                    'is_default' => false,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+            ]);
+
+        $this->actingAs($user);
+
+        $before = $this->getJson('/api/user');
+
+        $before
+            ->assertOk()
+            ->assertJsonPath('permissions', []);
+
+        $change = $this->putJson(
+            "/api/user/profiles/{$administrationId}/default"
+        );
+
+        $change
+            ->assertOk()
+            ->assertJsonPath(
+                'data.code',
+                'PERFIL_ADMINISTRACION'
+            )
+            ->assertJsonPath(
+                'data.is_default',
+                true
+            );
+
+        $after = $this->getJson('/api/user');
+
+        $after
+            ->assertOk()
+            ->assertJsonPath('permissions', []);
+
+        $personasResponse = $this->getJson(
+            '/api/personas'
+        );
+
+        $personasResponse->assertForbidden();
+    }
 }
