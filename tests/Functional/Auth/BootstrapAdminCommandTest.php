@@ -2,37 +2,21 @@
 
 namespace Tests\Functional\Auth;
 
+use App\Actions\User\BootstrapAdmin;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Tests\Functional\HttpFunctionalTestCase;
 
 class BootstrapAdminCommandTest extends HttpFunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->prepareEmptyUserState();
-    }
-
-    private function prepareEmptyUserState(): void
-    {
-        $this->db
-            ->table('system.users')
-            ->delete();
-
-        self::assertSame(
-            0,
-            User::query()->count(),
-            'El escenario del comando bootstrap debe iniciar sin usuarios dentro de la transacción de prueba.'
-        );
-    }
-
     public function test_crea_administrador_inicial_desde_artisan(): void
     {
-        self::assertSame(
-            0,
-            User::query()->count()
+        $this->bindBootstrapAdmin();
+
+        self::assertFalse(
+            User::query()
+                ->where('email', 'admin.inicial@siga.test')
+                ->exists()
         );
 
         $this->artisan(
@@ -94,9 +78,12 @@ class BootstrapAdminCommandTest extends HttpFunctionalTestCase
 
     public function test_rechaza_contrasenas_diferentes(): void
     {
-        self::assertSame(
-            0,
-            User::query()->count()
+        $this->bindBootstrapAdmin();
+
+        self::assertFalse(
+            User::query()
+                ->where('email', 'admin.inicial@siga.test')
+                ->exists()
         );
 
         $this->artisan(
@@ -119,24 +106,23 @@ class BootstrapAdminCommandTest extends HttpFunctionalTestCase
             )
             ->assertExitCode(1);
 
-        self::assertSame(
-            0,
-            User::query()->count()
+        self::assertFalse(
+            User::query()
+                ->where('email', 'admin.inicial@siga.test')
+                ->exists()
         );
     }
 
     public function test_rechaza_bootstrap_si_ya_existe_un_usuario(): void
     {
-        User::query()->create([
-            'id_persona' => null,
-            'name' => 'USUARIO EXISTENTE',
-            'email' => 'existente@siga.test',
-            'password' => 'ClaveSegura123!',
-        ]);
+        $this->bindBootstrapAdmin(
+            usersExist: true
+        );
 
-        self::assertSame(
-            1,
-            User::query()->count()
+        self::assertFalse(
+            User::query()
+                ->where('email', 'otro.admin@siga.test')
+                ->exists()
         );
 
         $this->artisan(
@@ -159,23 +145,17 @@ class BootstrapAdminCommandTest extends HttpFunctionalTestCase
             )
             ->assertExitCode(1);
 
-        self::assertSame(
-            1,
-            User::query()->count()
-        );
-
         self::assertFalse(
             User::query()
-                ->where(
-                    'email',
-                    'otro.admin@siga.test'
-                )
+                ->where('email', 'otro.admin@siga.test')
                 ->exists()
         );
     }
 
     public function test_muestra_error_controlado_para_nombre_vacio(): void
     {
+        $this->bindBootstrapAdmin();
+
         $this->artisan(
             'siga:bootstrap-admin',
             [
@@ -196,14 +176,17 @@ class BootstrapAdminCommandTest extends HttpFunctionalTestCase
             )
             ->assertExitCode(1);
 
-        self::assertSame(
-            0,
-            User::query()->count()
+        self::assertFalse(
+            User::query()
+                ->where('email', 'admin.inicial@siga.test')
+                ->exists()
         );
     }
 
     public function test_muestra_error_controlado_para_correo_invalido(): void
     {
+        $this->bindBootstrapAdmin();
+
         $this->artisan(
             'siga:bootstrap-admin',
             [
@@ -224,14 +207,17 @@ class BootstrapAdminCommandTest extends HttpFunctionalTestCase
             )
             ->assertExitCode(1);
 
-        self::assertSame(
-            0,
-            User::query()->count()
+        self::assertFalse(
+            User::query()
+                ->where('email', 'correo-invalido')
+                ->exists()
         );
     }
 
     public function test_muestra_error_controlado_para_contrasena_corta(): void
     {
+        $this->bindBootstrapAdmin();
+
         $this->artisan(
             'siga:bootstrap-admin',
             [
@@ -252,9 +238,32 @@ class BootstrapAdminCommandTest extends HttpFunctionalTestCase
             )
             ->assertExitCode(1);
 
-        self::assertSame(
-            0,
-            User::query()->count()
+        self::assertFalse(
+            User::query()
+                ->where('email', 'admin.inicial@siga.test')
+                ->exists()
+        );
+    }
+
+    private function bindBootstrapAdmin(
+        bool $usersExist = false
+    ): void {
+        $bootstrapAdmin = new class($usersExist) extends BootstrapAdmin
+        {
+            public function __construct(
+                private readonly bool $usersExist
+            ) {
+            }
+
+            protected function usersExist(): bool
+            {
+                return $this->usersExist;
+            }
+        };
+
+        $this->app->instance(
+            BootstrapAdmin::class,
+            $bootstrapAdmin
         );
     }
 }

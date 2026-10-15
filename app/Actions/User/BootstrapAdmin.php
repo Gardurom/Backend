@@ -25,7 +25,7 @@ class BootstrapAdmin
 
         return DB::connection()->transaction(
             function () use ($attributes): User {
-                if (User::query()->exists()) {
+                if ($this->usersExist()) {
                     throw new LogicException(
                         'El bootstrap administrativo solo puede ejecutarse cuando no existen usuarios.'
                     );
@@ -90,6 +90,11 @@ class BootstrapAdmin
                 return $user;
             }
         );
+    }
+
+    protected function usersExist(): bool
+    {
+        return User::query()->exists();
     }
 
     protected function assignAdminRole(

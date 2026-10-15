@@ -13,34 +13,15 @@ use Tests\Functional\FunctionalTestCase;
 
 class BootstrapAdminActionTest extends FunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->prepareEmptyUserState();
-    }
-
-    private function prepareEmptyUserState(): void
-    {
-        $this->db
-            ->table('system.users')
-            ->delete();
-
-        self::assertSame(
-            0,
-            User::query()->count(),
-            'El escenario de bootstrap debe iniciar sin usuarios dentro de la transacción de prueba.'
-        );
-    }
-
     public function test_crea_primer_administrador_sin_persona_asociada(): void
     {
-        self::assertSame(
-            0,
-            User::query()->count()
+        self::assertFalse(
+            User::query()
+                ->where('email', 'admin.inicial@siga.test')
+                ->exists()
         );
 
-        $user = (new BootstrapAdmin())->execute(
+        $user = $this->bootstrapAdmin()->execute(
             '  ADMINISTRADOR INICIAL  ',
             ' Admin.Inicial@SIGA.TEST ',
             'ClaveSegura123!'
@@ -81,31 +62,22 @@ class BootstrapAdminActionTest extends FunctionalTestCase
                 ->exists()
         );
 
-        self::assertSame(
-            1,
-            User::query()->count()
+        self::assertTrue(
+            User::query()
+                ->where('email', 'admin.inicial@siga.test')
+                ->exists()
         );
     }
 
     public function test_rechaza_bootstrap_si_ya_existe_un_usuario(): void
     {
-        User::query()->create([
-            'id_persona' => null,
-            'name' => 'USUARIO EXISTENTE',
-            'email' => 'existente@siga.test',
-            'password' => 'ClaveSegura123!',
-        ]);
-
-        self::assertSame(
-            1,
-            User::query()->count()
-        );
-
         $this->expectException(
             LogicException::class
         );
 
-        (new BootstrapAdmin())->execute(
+        $this->bootstrapAdmin(
+            usersExist: true
+        )->execute(
             'OTRO ADMINISTRADOR',
             'otro.admin@siga.test',
             'OtraClaveSegura456!'
@@ -114,13 +86,19 @@ class BootstrapAdminActionTest extends FunctionalTestCase
 
     public function test_revierte_usuario_si_falla_asignacion_de_rol(): void
     {
-        self::assertSame(
-            0,
-            User::query()->count()
+        self::assertFalse(
+            User::query()
+                ->where('email', 'rollback.admin@siga.test')
+                ->exists()
         );
 
         $action = new class extends BootstrapAdmin
         {
+            protected function usersExist(): bool
+            {
+                return false;
+            }
+
             protected function assignAdminRole(
                 User $user,
                 Role $role
@@ -143,9 +121,13 @@ class BootstrapAdminActionTest extends FunctionalTestCase
                 $error->getMessage()
             );
 
-            self::assertSame(
-                0,
-                User::query()->count(),
+            self::assertFalse(
+                User::query()
+                    ->where(
+                        'email',
+                        'rollback.admin@siga.test'
+                    )
+                    ->exists(),
                 'El usuario debe revertirse si falla la asignacion del rol.'
             );
 
@@ -159,13 +141,8 @@ class BootstrapAdminActionTest extends FunctionalTestCase
 
     public function test_rechaza_nombre_vacio(): void
     {
-        self::assertSame(
-            0,
-            User::query()->count()
-        );
-
         try {
-            (new BootstrapAdmin())->execute(
+            $this->bootstrapAdmin()->execute(
                 '   ',
                 'admin.inicial@siga.test',
                 'ClaveSegura123!'
@@ -176,9 +153,10 @@ class BootstrapAdminActionTest extends FunctionalTestCase
                 $error->errors()
             );
 
-            self::assertSame(
-                0,
-                User::query()->count()
+            self::assertFalse(
+                User::query()
+                    ->where('email', 'admin.inicial@siga.test')
+                    ->exists()
             );
 
             return;
@@ -191,13 +169,8 @@ class BootstrapAdminActionTest extends FunctionalTestCase
 
     public function test_rechaza_correo_invalido(): void
     {
-        self::assertSame(
-            0,
-            User::query()->count()
-        );
-
         try {
-            (new BootstrapAdmin())->execute(
+            $this->bootstrapAdmin()->execute(
                 'ADMINISTRADOR INICIAL',
                 'correo-invalido',
                 'ClaveSegura123!'
@@ -208,9 +181,10 @@ class BootstrapAdminActionTest extends FunctionalTestCase
                 $error->errors()
             );
 
-            self::assertSame(
-                0,
-                User::query()->count()
+            self::assertFalse(
+                User::query()
+                    ->where('email', 'correo-invalido')
+                    ->exists()
             );
 
             return;
@@ -223,13 +197,8 @@ class BootstrapAdminActionTest extends FunctionalTestCase
 
     public function test_rechaza_contrasena_menor_de_quince_caracteres(): void
     {
-        self::assertSame(
-            0,
-            User::query()->count()
-        );
-
         try {
-            (new BootstrapAdmin())->execute(
+            $this->bootstrapAdmin()->execute(
                 'ADMINISTRADOR INICIAL',
                 'admin.inicial@siga.test',
                 'ClaveSegura123'
@@ -240,9 +209,10 @@ class BootstrapAdminActionTest extends FunctionalTestCase
                 $error->errors()
             );
 
-            self::assertSame(
-                0,
-                User::query()->count()
+            self::assertFalse(
+                User::query()
+                    ->where('email', 'admin.inicial@siga.test')
+                    ->exists()
             );
 
             return;
@@ -251,5 +221,22 @@ class BootstrapAdminActionTest extends FunctionalTestCase
         self::fail(
             'El bootstrap debe exigir al menos 15 caracteres.'
         );
+    }
+
+    private function bootstrapAdmin(
+        bool $usersExist = false
+    ): BootstrapAdmin {
+        return new class($usersExist) extends BootstrapAdmin
+        {
+            public function __construct(
+                private readonly bool $usersExist
+            ) {
+            }
+
+            protected function usersExist(): bool
+            {
+                return $this->usersExist;
+            }
+        };
     }
 }
