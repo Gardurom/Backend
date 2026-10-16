@@ -2,7 +2,6 @@
 
 namespace App\Actions\User;
 
-use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -16,18 +15,13 @@ class ListUserProfiles
                 'system.profiles.id',
                 'system.profiles.name',
                 'system.profiles.code',
+                'system.profiles.profile_group_id',
+            ])
+            ->with([
+                'profileGroup:id,name,code,sort_order',
             ])
             ->orderByPivot('is_default', 'desc')
             ->orderBy('system.profiles.name')
-            ->get()
-            ->map(
-                static fn (Profile $profile): array => [
-                    'id' => $profile->id,
-                    'name' => $profile->name,
-                    'code' => $profile->code,
-                    'is_default' => (bool) $profile->pivot->is_default,
-                ]
-            )
-            ->values();
+            ->get();
     }
 }

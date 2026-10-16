@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Actions\User\ListUserProfiles;
 use App\Actions\User\SetDefaultProfile;
 use App\Http\Controllers\Controller;
+use App\Models\Profile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,10 +15,17 @@ class UserProfileController extends Controller
         Request $request,
         ListUserProfiles $listUserProfiles
     ): JsonResponse {
+        $profiles = $listUserProfiles
+            ->execute($request->user())
+            ->map(
+                fn (Profile $profile): array => $this->profileData(
+                    $profile
+                )
+            )
+            ->values();
+
         return response()->json([
-            'data' => $listUserProfiles->execute(
-                $request->user()
-            ),
+            'data' => $profiles,
         ]);
     }
 
@@ -31,15 +39,34 @@ class UserProfileController extends Controller
             $profile
         );
 
+        $selectedProfile->load(
+            'profileGroup:id,name,code,sort_order'
+        );
+
         return response()->json([
-            'data' => [
-                'id' => $selectedProfile->id,
-                'name' => $selectedProfile->name,
-                'code' => $selectedProfile->code,
-                'is_default' => (bool) $selectedProfile
-                    ->pivot
-                    ->is_default,
-            ],
+            'data' => $this->profileData(
+                $selectedProfile
+            ),
         ]);
+    }
+
+    private function profileData(Profile $profile): array
+    {
+        return [
+            'id' => $profile->id,
+            'name' => $profile->name,
+            'code' => $profile->code,
+            'is_default' => (bool) $profile
+                ->pivot
+                ->is_default,
+            'group' => [
+                'id' => $profile->profileGroup->id,
+                'name' => $profile->profileGroup->name,
+                'code' => $profile->profileGroup->code,
+                'sort_order' => (int) $profile
+                    ->profileGroup
+                    ->sort_order,
+            ],
+        ];
     }
 }

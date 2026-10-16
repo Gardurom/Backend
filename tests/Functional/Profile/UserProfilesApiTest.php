@@ -396,4 +396,187 @@ class UserProfilesApiTest extends HttpFunctionalTestCase
 
         $personasResponse->assertForbidden();
     }
+
+    public function test_perfiles_del_usuario_incluyen_grupo_de_trabajo(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO PERFIL AGRUPADO',
+            'email' => 'profiles.group@siga.test',
+        ]);
+
+        $personas = $this->db
+            ->table('system.profiles')
+            ->where('code', 'PERFIL_PERSONAS')
+            ->first([
+                'id',
+                'profile_group_id',
+            ]);
+
+        self::assertNotNull($personas);
+
+        $group = $this->db
+            ->table('system.profile_groups')
+            ->where('id', $personas->profile_group_id)
+            ->first([
+                'id',
+                'name',
+                'code',
+                'sort_order',
+            ]);
+
+        self::assertNotNull($group);
+
+        self::assertSame(
+            'GRUPO_OPERACION',
+            $group->code
+        );
+
+        $this->db
+            ->table('system.user_profiles')
+            ->insert([
+                'user_id' => $user->id,
+                'profile_id' => $personas->id,
+                'is_default' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $this->actingAs($user);
+
+        $response = $this->getJson(
+            '/api/user/profiles'
+        );
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => [
+                        'id',
+                        'name',
+                        'code',
+                        'is_default',
+                        'group' => [
+                            'id',
+                            'name',
+                            'code',
+                            'sort_order',
+                        ],
+                    ],
+                ],
+            ])
+            ->assertJsonPath(
+                'data.0.code',
+                'PERFIL_PERSONAS'
+            )
+            ->assertJsonPath(
+                'data.0.group.id',
+                (int) $group->id
+            )
+            ->assertJsonPath(
+                'data.0.group.name',
+                'Operación'
+            )
+            ->assertJsonPath(
+                'data.0.group.code',
+                'GRUPO_OPERACION'
+            )
+            ->assertJsonPath(
+                'data.0.group.sort_order',
+                10
+            );
+    }
+
+    public function test_cambio_de_perfil_devuelve_grupo_de_trabajo(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO CAMBIO PERFIL AGRUPADO',
+            'email' => 'profiles.change.group@siga.test',
+        ]);
+
+        $audit = $this->db
+            ->table('system.profiles')
+            ->where('code', 'PERFIL_AUDITORIA')
+            ->first([
+                'id',
+                'profile_group_id',
+            ]);
+
+        self::assertNotNull($audit);
+
+        $group = $this->db
+            ->table('system.profile_groups')
+            ->where('id', $audit->profile_group_id)
+            ->first([
+                'id',
+                'name',
+                'code',
+                'sort_order',
+            ]);
+
+        self::assertNotNull($group);
+
+        self::assertSame(
+            'GRUPO_CONTROL_SUPERVISION',
+            $group->code
+        );
+
+        $this->db
+            ->table('system.user_profiles')
+            ->insert([
+                'user_id' => $user->id,
+                'profile_id' => $audit->id,
+                'is_default' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $this->actingAs($user);
+
+        $response = $this->putJson(
+            "/api/user/profiles/{$audit->id}/default"
+        );
+
+        $response
+            ->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'name',
+                    'code',
+                    'is_default',
+                    'group' => [
+                        'id',
+                        'name',
+                        'code',
+                        'sort_order',
+                    ],
+                ],
+            ])
+            ->assertJsonPath(
+                'data.code',
+                'PERFIL_AUDITORIA'
+            )
+            ->assertJsonPath(
+                'data.is_default',
+                true
+            )
+            ->assertJsonPath(
+                'data.group.id',
+                (int) $group->id
+            )
+            ->assertJsonPath(
+                'data.group.name',
+                'Control y supervisión'
+            )
+            ->assertJsonPath(
+                'data.group.code',
+                'GRUPO_CONTROL_SUPERVISION'
+            )
+            ->assertJsonPath(
+                'data.group.sort_order',
+                20
+            );
+    }
 }
