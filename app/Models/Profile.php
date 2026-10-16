@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Profile extends Model
@@ -13,6 +14,15 @@ class Profile extends Model
      * @var string
      */
     protected $table = 'system.profiles';
+
+    public function profileGroup(): BelongsTo
+    {
+        return $this->belongsTo(
+            ProfileGroup::class,
+            'profile_group_id',
+            'id'
+        );
+    }
 
     public function users(): BelongsToMany
     {
