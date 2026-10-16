@@ -40,6 +40,7 @@ class ProfileStructureTest extends InstallationTestCase
                 'code',
                 'created_at',
                 'updated_at',
+                'profile_group_id',
             ],
             $names
         );
