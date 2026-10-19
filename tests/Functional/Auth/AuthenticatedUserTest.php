@@ -101,6 +101,7 @@ class AuthenticatedUserTest extends HttpFunctionalTestCase
                     'personas.actualizar',
                     'personas.baja',
                     'personas.crear',
+                    'personas.importar',
                     'personas.reingreso',
                     'personas.ver',
                 ]
@@ -180,6 +181,7 @@ class AuthenticatedUserTest extends HttpFunctionalTestCase
                 'personas.actualizar',
                 'personas.baja',
                 'personas.crear',
+                'personas.importar',
                 'personas.reingreso',
             ],
             $response->json('permissions')

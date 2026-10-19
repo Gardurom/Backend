@@ -33,6 +33,8 @@ class SequenceAndFunctionTest extends InstallationTestCase
         yield 'usuarios' => ['system.users_id_seq'];
         yield 'trabajos' => ['system.jobs_id_seq'];
         yield 'trabajos fallidos' => ['system.failed_jobs_id_seq'];
+        yield 'lotes de importacion' => ['system.import_batches_id_seq'];
+        yield 'filas de importacion' => ['system.import_rows_id_seq'];
         yield 'actividades' => ['system.activities_id_actividad_seq'];
     }
 

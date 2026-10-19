@@ -14,6 +14,7 @@ class RolePermissionMatrixTest extends InstallationTestCase
             'ROL_GESTOR_PERSONAS|personas.actualizar|ALLOW',
             'ROL_GESTOR_PERSONAS|personas.baja|ALLOW',
             'ROL_GESTOR_PERSONAS|personas.crear|ALLOW',
+            'ROL_GESTOR_PERSONAS|personas.importar|ALLOW',
             'ROL_GESTOR_PERSONAS|personas.reingreso|ALLOW',
             'ROL_GESTOR_PERSONAS|personas.ver|ALLOW',
         ];

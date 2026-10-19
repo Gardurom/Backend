@@ -97,6 +97,21 @@ class TablePermissionsTest extends InstallationTestCase
                 'TRUNCATE' => false,
             ],
         ];
+        $importOperational = [
+            'SELECT' => true,
+            'INSERT' => true,
+            'UPDATE' => true,
+            'DELETE' => false,
+            'TRUNCATE' => false,
+        ];
+
+        foreach ([
+            'system.import_batches',
+            'system.import_rows',
+        ] as $table) {
+            yield $table => [$table, $importOperational];
+        }
+
         $noAccess = [
             'SELECT' => false,
             'INSERT' => false,
