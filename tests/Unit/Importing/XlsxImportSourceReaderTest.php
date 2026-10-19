@@ -264,6 +264,93 @@ class XlsxImportSourceReaderTest extends TestCase
     /**
      * @param  list<mixed>  $values
      */
+    public function test_rejects_non_string_headers(): void
+    {
+        $file = $this->createWorkbook([
+            [
+                'nombres',
+                123,
+            ],
+            [
+                'MARIA',
+                'LOPEZ',
+            ],
+        ]);
+
+        $this->expectException(
+            InvalidXlsxImportSource::class
+        );
+
+        iterator_to_array(
+            (new XlsxImportSourceReader)->read(
+                $file
+            )
+        );
+    }
+
+    public function test_allows_trailing_blank_header_cells(): void
+    {
+        $file = $this->createWorkbook([
+            [
+                'nombres',
+                'apellido_paterno',
+                null,
+                '   ',
+            ],
+            [
+                'MARIA',
+                'LOPEZ',
+                null,
+                '   ',
+            ],
+        ]);
+
+        $rows = iterator_to_array(
+            (new XlsxImportSourceReader)->read(
+                $file
+            ),
+            false
+        );
+
+        self::assertCount(
+            1,
+            $rows
+        );
+
+        self::assertEquals(
+            [
+                'nombres' => 'MARIA',
+                'apellido_paterno' => 'LOPEZ',
+            ],
+            $rows[0]->rawData
+        );
+    }
+
+    public function test_rejects_non_blank_data_beyond_header_width(): void
+    {
+        $file = $this->createWorkbook([
+            [
+                'nombres',
+                'apellido_paterno',
+            ],
+            [
+                'MARIA',
+                'LOPEZ',
+                'NO DEBE IGNORARSE',
+            ],
+        ]);
+
+        $this->expectException(
+            InvalidXlsxImportSource::class
+        );
+
+        iterator_to_array(
+            (new XlsxImportSourceReader)->read(
+                $file
+            )
+        );
+    }
+
     private function createRow(
         array $values
     ): Row {

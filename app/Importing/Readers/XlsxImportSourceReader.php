@@ -72,6 +72,24 @@ class XlsxImportSourceReader
                         continue;
                     }
 
+                    $headerWidth = count(
+                        $headers
+                    );
+
+                    $extraValues = array_slice(
+                        $values,
+                        $headerWidth
+                    );
+
+                    if (
+                        ! $this->isEmptyRow(
+                            $extraValues
+                        )
+                    ) {
+                        throw new InvalidXlsxImportSource(
+                            'Los datos XLSX exceden las columnas declaradas.'
+                        );
+                    }
                     $rawData = [];
 
                     foreach (
@@ -135,6 +153,15 @@ class XlsxImportSourceReader
     private function normalizeHeaders(
         array $values
     ): array {
+        while (
+            $values !== []
+            && $this->isBlankValue(
+                $values[array_key_last($values)]
+            )
+        ) {
+            array_pop($values);
+        }
+
         if ($values === []) {
             throw new InvalidXlsxImportSource(
                 'La fila de encabezados esta vacia.'
@@ -144,18 +171,14 @@ class XlsxImportSourceReader
         $headers = [];
 
         foreach ($values as $value) {
-            if (
-                ! is_string($value)
-                && ! is_int($value)
-                && ! is_float($value)
-            ) {
+            if (! is_string($value)) {
                 throw new InvalidXlsxImportSource(
-                    'Los encabezados XLSX deben ser texto o numeros.'
+                    'Los encabezados XLSX deben ser texto.'
                 );
             }
 
             $header = trim(
-                (string) $value
+                $value
             );
 
             if ($header === '') {
@@ -189,21 +212,22 @@ class XlsxImportSourceReader
         array $values
     ): bool {
         foreach ($values as $value) {
-            if ($value === null) {
-                continue;
+            if (! $this->isBlankValue($value)) {
+                return false;
             }
-
-            if (
-                is_string($value)
-                && trim($value) === ''
-            ) {
-                continue;
-            }
-
-            return false;
         }
 
         return true;
+    }
+
+    private function isBlankValue(
+        mixed $value
+    ): bool {
+        return $value === null
+            || (
+                is_string($value)
+                && trim($value) === ''
+            );
     }
 
     private function normalizeValue(
