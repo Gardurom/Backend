@@ -43,12 +43,19 @@ class StageImportRows
 
                 $count = 0;
                 $pending = [];
+                $sourceColumns = null;
                 $now = now();
 
                 foreach ($source as $row) {
                     if (! $row instanceof ImportSourceRow) {
                         throw new InvalidArgumentException(
                             'La fuente debe producir instancias de ImportSourceRow.'
+                        );
+                    }
+
+                    if ($sourceColumns === null) {
+                        $sourceColumns = array_keys(
+                            $row->rawData
                         );
                     }
 
@@ -89,6 +96,12 @@ class StageImportRows
                     );
                 }
 
+                $options = $batch->options ?? [];
+
+                $options['source_columns'] =
+                    $sourceColumns;
+
+                $batch->options = $options;
                 $batch->total_rows = $count;
                 $batch->save();
 

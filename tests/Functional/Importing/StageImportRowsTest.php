@@ -428,6 +428,48 @@ class StageImportRowsTest extends FunctionalTestCase
         );
     }
 
+    public function test_staging_preserves_source_column_order_in_batch_options(): void
+    {
+        $batch = $this->createBatch();
+
+        $batch->options = [
+            'template_version' => '2',
+        ];
+
+        $batch->save();
+
+        $staged = (new StageImportRows)->execute(
+            $batch->id,
+            [
+                new ImportSourceRow(
+                    2,
+                    [
+                        'apellido_paterno' => 'LOPEZ',
+                        'nombres' => 'MARIA',
+                    ]
+                ),
+            ]
+        );
+
+        self::assertIsArray(
+            $staged->options
+        );
+
+        self::assertSame(
+            '2',
+            $staged->options['template_version']
+        );
+
+        self::assertSame(
+            [
+                'apellido_paterno',
+                'nombres',
+            ],
+            $staged->options['source_columns']
+                ?? null
+        );
+    }
+
     private function createBatch(): ImportBatch
     {
         $userId = (int) $this->db

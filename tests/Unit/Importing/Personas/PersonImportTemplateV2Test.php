@@ -160,6 +160,43 @@ class PersonImportTemplateV2Test extends TestCase
             ->normalize($reordered);
     }
 
+    public function test_normalizes_staged_row_without_relying_on_key_order(): void
+    {
+        $row = $this->validRow();
+
+        $reordered = [
+            'territorio_nacimiento_clave' => $row['territorio_nacimiento_clave'],
+            'pais_nacimiento_alpha3' => $row['pais_nacimiento_alpha3'],
+            'pais_origen_alpha3' => $row['pais_origen_alpha3'],
+            'correo_personal' => $row['correo_personal'],
+            'correo_institucional' => $row['correo_institucional'],
+            'estado_civil' => $row['estado_civil'],
+            'sexo' => $row['sexo'],
+            'fecha_nacimiento' => $row['fecha_nacimiento'],
+            'rfc' => $row['rfc'],
+            'curp' => $row['curp'],
+            'apellido_materno' => $row['apellido_materno'],
+            'apellido_paterno' => $row['apellido_paterno'],
+            'nombres' => $row['nombres'],
+        ];
+
+        $normalized =
+            (new PersonImportTemplateV2)
+                ->normalizeStaged(
+                    $reordered
+                );
+
+        self::assertSame(
+            array_keys($row),
+            array_keys($normalized)
+        );
+
+        self::assertSame(
+            'MARIA',
+            $normalized['nombres']
+        );
+    }
+
     /**
      * @return array<string, mixed>
      */

@@ -41,7 +41,7 @@ final class PersonImportRowValidator
         array $rawData
     ): PersonImportRowValidationResult {
         $normalizedData =
-            $this->template->normalize(
+            $this->template->normalizeStaged(
                 $rawData
             );
 

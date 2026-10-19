@@ -59,6 +59,47 @@ final class PersonImportTemplateV2
     ): array {
         $this->assertColumns($row);
 
+        return $this->normalizeValues(
+            $row
+        );
+    }
+
+    /**
+     * Normaliza una fila recuperada del staging.
+     *
+     * JSONB no preserva el orden original de las claves, por lo que
+     * aquí se valida el conjunto exacto de columnas y luego se
+     * reconstruye el orden canónico de la plantilla.
+     *
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    public function normalizeStaged(
+        array $row
+    ): array {
+        $this->assertStagedColumns(
+            $row
+        );
+
+        $ordered = [];
+
+        foreach (self::COLUMNS as $column) {
+            $ordered[$column] =
+                $row[$column];
+        }
+
+        return $this->normalizeValues(
+            $ordered
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    private function normalizeValues(
+        array $row
+    ): array {
         return [
             'nombres' => PersonImportValueNormalizer::text(
                 $row['nombres']
@@ -100,6 +141,28 @@ final class PersonImportTemplateV2
                 $row['territorio_nacimiento_clave']
             ),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function assertStagedColumns(
+        array $row
+    ): void {
+        $keys = array_keys(
+            $row
+        );
+
+        sort($keys);
+
+        $expected = self::COLUMNS;
+        sort($expected);
+
+        if ($keys !== $expected) {
+            throw new InvalidPersonImportTemplate(
+                'Las columnas deben coincidir exactamente con la plantilla PERSONAS v2.'
+            );
+        }
     }
 
     /**
