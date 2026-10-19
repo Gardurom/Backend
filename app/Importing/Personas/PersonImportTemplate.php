@@ -54,25 +54,25 @@ final class PersonImportTemplate
         $this->assertColumns($row);
 
         return [
-            'nombres' => $this->normalizeText(
+            'nombres' => PersonImportValueNormalizer::text(
                 $row['nombres']
             ),
-            'apellido_paterno' => $this->normalizeText(
+            'apellido_paterno' => PersonImportValueNormalizer::text(
                 $row['apellido_paterno']
             ),
-            'apellido_materno' => $this->normalizeText(
+            'apellido_materno' => PersonImportValueNormalizer::text(
                 $row['apellido_materno']
             ),
-            'fecha_nacimiento' => $this->normalizeText(
+            'fecha_nacimiento' => PersonImportValueNormalizer::text(
                 $row['fecha_nacimiento']
             ),
-            'sexo' => $this->normalizeUppercase(
+            'sexo' => PersonImportValueNormalizer::uppercase(
                 $row['sexo']
             ),
-            'estado_civil' => $this->normalizeUppercase(
+            'estado_civil' => PersonImportValueNormalizer::uppercase(
                 $row['estado_civil']
             ),
-            'correo_personal' => $this->normalizeLowercase(
+            'correo_personal' => PersonImportValueNormalizer::lowercase(
                 $row['correo_personal']
             ),
         ];
@@ -92,55 +92,5 @@ final class PersonImportTemplate
                 'Las columnas deben coincidir exactamente con la plantilla PERSONAS v1.'
             );
         }
-    }
-
-    private function normalizeText(
-        mixed $value
-    ): mixed {
-        if (! is_string($value)) {
-            return $value;
-        }
-
-        $normalized = trim(
-            $value
-        );
-
-        return $normalized === ''
-            ? null
-            : $normalized;
-    }
-
-    private function normalizeUppercase(
-        mixed $value
-    ): mixed {
-        $normalized =
-            $this->normalizeText(
-                $value
-            );
-
-        if (! is_string($normalized)) {
-            return $normalized;
-        }
-
-        return strtoupper(
-            $normalized
-        );
-    }
-
-    private function normalizeLowercase(
-        mixed $value
-    ): mixed {
-        $normalized =
-            $this->normalizeText(
-                $value
-            );
-
-        if (! is_string($normalized)) {
-            return $normalized;
-        }
-
-        return strtolower(
-            $normalized
-        );
     }
 }
