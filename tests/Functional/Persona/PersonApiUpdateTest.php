@@ -486,6 +486,7 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('apellido_paterno');
     }
+
     public function test_authenticated_user_cannot_remove_last_maternal_surname(): void
     {
         $user = User::factory()->create([
@@ -526,6 +527,7 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('apellido_materno');
     }
+
     public function test_authenticated_user_can_replace_paternal_surname_with_maternal_surname(): void
     {
         $user = User::factory()->create([
@@ -580,6 +582,7 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
             $storedPerson->apellido_materno
         );
     }
+
     public function test_authenticated_user_can_update_other_field_without_resending_existing_surname(): void
     {
         $user = User::factory()->create([
@@ -631,6 +634,68 @@ class PersonApiUpdateTest extends HttpFunctionalTestCase
                 'CONSERVADO'
             );
     }
+
+    public function test_update_does_not_persist_unvalidated_fillable_fields(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO SEGURIDAD CAMPOS ACTUALIZACION',
+            'email' => 'persona.update.unvalidated.fields@siga.test',
+        ]);
+
+        $this->assignRole(
+            $user,
+            'ROL_GESTOR_PERSONAS'
+        );
+
+        $person = $this->db->selectOne(
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            [
+                'PERSONA CAMPOS CONTROLADOS',
+                'PRUEBA',
+            ]
+        );
+
+        $this->actingAs($user);
+
+        $csrfToken =
+            'csrf-token-persona-update-unvalidated-fields-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader(
+                'X-CSRF-TOKEN',
+                $csrfToken
+            )
+            ->patchJson(
+                '/api/personas/'.$person->id_persona,
+                [
+                    'curp' => 'GARM900101HNTRRR01',
+                ]
+            );
+
+        $response->assertOk();
+
+        $storedPerson = $this->db
+            ->table('institutional.persons')
+            ->where(
+                'id_persona',
+                $person->id_persona
+            )
+            ->first();
+
+        self::assertNotNull($storedPerson);
+
+        self::assertNull(
+            $storedPerson->curp,
+            'Un campo fillable sin reglas no debe persistirse.'
+        );
+    }
+
     private function assignRole(
         User $user,
         string $roleCode

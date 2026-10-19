@@ -437,6 +437,58 @@ class PersonApiRegistrationTest extends HttpFunctionalTestCase
             );
     }
 
+    public function test_registration_does_not_persist_unvalidated_fillable_fields(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO SEGURIDAD CAMPOS PERSONA',
+            'email' => 'persona.unvalidated.fields@siga.test',
+        ]);
+
+        $this->assignRole(
+            $user,
+            'ROL_GESTOR_PERSONAS'
+        );
+
+        $this->actingAs($user);
+
+        $csrfToken =
+            'csrf-token-persona-unvalidated-fields-siga';
+
+        $response = $this
+            ->withSession([
+                '_token' => $csrfToken,
+            ])
+            ->withHeader(
+                'X-CSRF-TOKEN',
+                $csrfToken
+            )
+            ->postJson('/api/personas', [
+                'nombres' => 'PERSONA CAMPOS CONTROLADOS',
+                'apellido_paterno' => 'PRUEBA',
+                'curp' => 'GARM900101HNTRRR01',
+            ]);
+
+        $response->assertCreated();
+
+        $personId =
+            $response->json('id_persona');
+
+        $person = $this->db
+            ->table('institutional.persons')
+            ->where(
+                'id_persona',
+                $personId
+            )
+            ->first();
+
+        self::assertNotNull($person);
+
+        self::assertNull(
+            $person->curp,
+            'Un campo fillable sin reglas no debe persistirse.'
+        );
+    }
+
     private function assignRole(
         User $user,
         string $roleCode

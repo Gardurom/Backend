@@ -9,8 +9,10 @@ use App\Actions\Persona\UpdatePerson;
 use App\Actions\Persona\WithdrawPerson;
 use App\Http\Controllers\Controller;
 use App\Models\Person;
+use App\Persona\PersonInputRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class PersonController extends Controller
 {
@@ -43,45 +45,13 @@ class PersonController extends Controller
         Request $request,
         RegisterPerson $registerPerson
     ): JsonResponse {
-
-        // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        $request->validate([
-            'nombres' => ['required', 'string', 'max:150'],
-            'apellido_paterno' => [
-                'nullable',
-                'string',
-                'max:100',
-                'required_without:apellido_materno',
-            ],
-            'apellido_materno' => [
-                'nullable',
-                'string',
-                'max:100',
-                'required_without:apellido_paterno',
-            ],
-            'sexo' => [
-                'nullable',
-                'string',
-                'in:MASCULINO,FEMENINO',
-            ],
-            'estado_civil' => [
-                'nullable',
-                'string',
-                'in:SOLTERO,CASADO',
-            ],
-            'fecha_nacimiento' => [
-                'nullable',
-                'date',
-                'before_or_equal:'.now('America/Mexico_City')->toDateString(),
-            ],
-        ]);
-
-        // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        $validated = $request->validate(
+            PersonInputRules::forCreate()
+        );
 
         $person = $registerPerson->execute(
             (int) $request->user()->getAuthIdentifier(),
-            $request->all()
+            $validated
         );
 
         return response()->json(
@@ -104,42 +74,12 @@ class PersonController extends Controller
         string $idPersona,
         UpdatePerson $updatePerson
     ): JsonResponse {
+        $currentPerson = Person::query()
+            ->findOrFail($idPersona);
 
-        $currentPerson = Person::query()->findOrFail($idPersona);
-
-        $validated = $request->validate([
-            'nombres' => ['sometimes', 'required', 'string', 'max:150'],
-            'apellido_paterno' => [
-                'sometimes',
-                'nullable',
-                'string',
-                'max:100',
-            ],
-            'apellido_materno' => [
-                'sometimes',
-                'nullable',
-                'string',
-                'max:100',
-            ],
-            'sexo' => [
-                'sometimes',
-                'nullable',
-                'string',
-                'in:MASCULINO,FEMENINO',
-            ],
-            'estado_civil' => [
-                'sometimes',
-                'nullable',
-                'string',
-                'in:SOLTERO,CASADO',
-            ],
-            'fecha_nacimiento' => [
-                'sometimes',
-                'nullable',
-                'date',
-                'before_or_equal:'.now('America/Mexico_City')->toDateString(),
-            ],
-        ]);
+        $validated = $request->validate(
+            PersonInputRules::forUpdate()
+        );
 
         $apellidoPaterno = array_key_exists(
             'apellido_paterno',
@@ -155,28 +95,43 @@ class PersonController extends Controller
             ? $validated['apellido_materno']
             : $currentPerson->apellido_materno;
 
-        $sinApellidoPaterno = $apellidoPaterno === null
+        $sinApellidoPaterno =
+            $apellidoPaterno === null
             || trim($apellidoPaterno) === '';
 
-        $sinApellidoMaterno = $apellidoMaterno === null
+        $sinApellidoMaterno =
+            $apellidoMaterno === null
             || trim($apellidoMaterno) === '';
 
-        if ($sinApellidoPaterno && $sinApellidoMaterno) {
+        if (
+            $sinApellidoPaterno
+            && $sinApellidoMaterno
+        ) {
             $errors = [];
 
-            if (array_key_exists('apellido_paterno', $validated)) {
+            if (
+                array_key_exists(
+                    'apellido_paterno',
+                    $validated
+                )
+            ) {
                 $errors['apellido_paterno'] = [
                     'La Persona debe conservar al menos un apellido.',
                 ];
             }
 
-            if (array_key_exists('apellido_materno', $validated)) {
+            if (
+                array_key_exists(
+                    'apellido_materno',
+                    $validated
+                )
+            ) {
                 $errors['apellido_materno'] = [
                     'La Persona debe conservar al menos un apellido.',
                 ];
             }
 
-            throw \Illuminate\Validation\ValidationException::withMessages(
+            throw ValidationException::withMessages(
                 $errors
             );
         }
@@ -184,7 +139,7 @@ class PersonController extends Controller
         $person = $updatePerson->execute(
             (int) $request->user()->getAuthIdentifier(),
             $idPersona,
-            $request->all()
+            $validated
         );
 
         return response()->json($person);
