@@ -5,6 +5,21 @@ namespace App\Persona;
 final class PersonInputRules
 {
     /**
+     * Campos actualmente habilitados por el API de Persona.
+     *
+     * @var list<string>
+     */
+    private const API_FIELDS = [
+        'nombres',
+        'apellido_paterno',
+        'apellido_materno',
+        'sexo',
+        'estado_civil',
+        'fecha_nacimiento',
+        'correo_personal',
+    ];
+
+    /**
      * Reglas para registrar una Persona.
      *
      * @return array<string, list<string>>
@@ -44,52 +59,22 @@ final class PersonInputRules
     }
 
     /**
-     * Campos actualmente admitidos por la entrada de Persona.
-     *
-     * No incluir aquí campos del sistema ni campos que todavía
-     * no formen parte de un flujo autorizado.
+     * Selecciona únicamente los campos autorizados por el API.
      *
      * @return array<string, list<string>>
      */
     private static function base(): array
     {
-        return [
-            'nombres' => [
-                'string',
-                'max:150',
-            ],
-            'apellido_paterno' => [
-                'nullable',
-                'string',
-                'max:100',
-            ],
-            'apellido_materno' => [
-                'nullable',
-                'string',
-                'max:100',
-            ],
-            'sexo' => [
-                'nullable',
-                'string',
-                'in:MASCULINO,FEMENINO',
-            ],
-            'estado_civil' => [
-                'nullable',
-                'string',
-                'in:SOLTERO,CASADO',
-            ],
-            'fecha_nacimiento' => [
-                'nullable',
-                'date',
-                'before_or_equal:'
-                    .now('America/Mexico_City')
-                        ->toDateString(),
-            ],
-            'correo_personal' => [
-                'nullable',
-                'string',
-                'max:254',
-            ],
-        ];
+        $fieldRules =
+            PersonFieldRules::all();
+
+        $rules = [];
+
+        foreach (self::API_FIELDS as $field) {
+            $rules[$field] =
+                $fieldRules[$field];
+        }
+
+        return $rules;
     }
 }
