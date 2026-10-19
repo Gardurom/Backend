@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Importing\Personas\DatabasePersonImportReferenceLookup;
+use App\Importing\Personas\PersonImportReferenceLookup;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
 
@@ -12,7 +15,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            PersonImportReferenceLookup::class,
+            static function (Application $app): PersonImportReferenceLookup {
+                return new DatabasePersonImportReferenceLookup(
+                    $app->make('db')->connection()
+                );
+            }
+        );
     }
 
     /**
