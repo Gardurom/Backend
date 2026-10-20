@@ -27,7 +27,11 @@ final class ProcessPersonImportBatchJob implements ShouldQueue
 
     public function __construct(
         public readonly int $batchId
-    ) {}
+    ) {
+        $this->onConnection(
+            'database'
+        );
+    }
 
     /**
      * @return list<int>
@@ -51,7 +55,7 @@ final class ProcessPersonImportBatchJob implements ShouldQueue
             (new WithoutOverlapping(
                 "person-import-batch:{$this->batchId}"
             ))
-                ->releaseAfter(5)
+                ->dontRelease()
                 ->expireAfter(80),
         ];
     }

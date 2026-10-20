@@ -57,6 +57,25 @@ class ProcessPersonImportBatchJobTest extends FunctionalTestCase
             WithoutOverlapping::class,
             $middleware[0]
         );
+
+        self::assertSame(
+            'database',
+            $job->connection
+        );
+
+        self::assertSame(
+            'person-import-batch:123',
+            $middleware[0]->key
+        );
+
+        self::assertNull(
+            $middleware[0]->releaseAfter
+        );
+
+        self::assertSame(
+            80,
+            $middleware[0]->expiresAfter
+        );
     }
 
     public function test_job_dispatches_next_chunk_while_batch_remains_processing(): void
@@ -125,6 +144,7 @@ class ProcessPersonImportBatchJobTest extends FunctionalTestCase
                 ProcessPersonImportBatchJob $queued
             ): bool => $queued->batchId
                 === $batch->id
+                && $queued->connection === 'database'
         );
 
         Queue::fake();
