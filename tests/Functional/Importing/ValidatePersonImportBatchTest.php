@@ -4,6 +4,7 @@ namespace Tests\Functional\Importing;
 
 use App\Actions\Importing\Personas\ValidatePersonImportBatch;
 use App\Actions\Importing\StageImportRows;
+use App\Actions\Importing\TransitionImportBatch;
 use App\Importing\ImportBatchStatus;
 use App\Importing\ImportRowStatus;
 use App\Importing\ImportSourceRow;
@@ -416,6 +417,71 @@ class ValidatePersonImportBatchTest extends FunctionalTestCase
         );
     }
 
+    public function test_technical_failure_preserves_original_error_when_failed_transition_also_fails(): void
+    {
+        $batch = $this->createBatch();
+
+        (new StageImportRows)->execute(
+            $batch->id,
+            [
+                new ImportSourceRow(
+                    2,
+                    $this->validRow([
+                        'pais_origen_alpha3' => 'MEX',
+                    ])
+                ),
+            ]
+        );
+
+        $this->app->instance(
+            PersonImportReferenceLookup::class,
+            new FailingPersonImportReferenceLookup
+        );
+
+        $this->app->instance(
+            TransitionImportBatch::class,
+            new FailingFailedTransitionImportBatch
+        );
+
+        try {
+            $this->app->make(
+                ValidatePersonImportBatch::class
+            )->execute(
+                $batch->id
+            );
+        } catch (RuntimeException $error) {
+            self::assertSame(
+                'FALLO TECNICO CONTROLADO',
+                $error->getMessage()
+            );
+
+            $batch->refresh();
+
+            self::assertSame(
+                ImportBatchStatus::VALIDATING,
+                $batch->status
+            );
+
+            $row = ImportRow::query()
+                ->where(
+                    'import_batch_id',
+                    $batch->id
+                )
+                ->firstOrFail();
+
+            self::assertSame(
+                ImportRowStatus::PENDING,
+                $row->status
+            );
+
+            return;
+        }
+
+        self::fail(
+            'Debe conservarse la excepción técnica original aunque falle el marcado FAILED.'
+        );
+    }
+
     private function createBatch(
         string $importType = 'PERSONAS'
     ): ImportBatch {
@@ -493,6 +559,25 @@ final class FailingPersonImportReferenceLookup implements PersonImportReferenceL
     ): array {
         throw new RuntimeException(
             'FALLO TECNICO CONTROLADO'
+        );
+    }
+}
+
+final class FailingFailedTransitionImportBatch extends TransitionImportBatch
+{
+    public function execute(
+        int $batchId,
+        ImportBatchStatus $target
+    ): ImportBatch {
+        if ($target === ImportBatchStatus::FAILED) {
+            throw new RuntimeException(
+                'FALLO AL MARCAR FAILED'
+            );
+        }
+
+        return parent::execute(
+            $batchId,
+            $target
         );
     }
 }

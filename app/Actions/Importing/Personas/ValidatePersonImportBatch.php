@@ -6,6 +6,7 @@ use App\Actions\Importing\TransitionImportBatch;
 use App\Importing\ImportBatchStatus;
 use App\Importing\ImportRowStatus;
 use App\Importing\InvalidImportBatchValidation;
+use App\Importing\Personas\PersonImportBatchUniquenessValidator;
 use App\Importing\Personas\PersonImportRowValidationPipeline;
 use App\Importing\Personas\PersonImportTemplateV2;
 use App\Models\ImportBatch;
@@ -20,6 +21,7 @@ final class ValidatePersonImportBatch
 
     public function __construct(
         private readonly PersonImportRowValidationPipeline $pipeline,
+        private readonly PersonImportBatchUniquenessValidator $uniquenessValidator,
         private readonly TransitionImportBatch $transitionBatch,
         private readonly PersonImportTemplateV2 $template
     ) {}
@@ -36,17 +38,50 @@ final class ValidatePersonImportBatch
                 $batchId
             );
 
+            $this->uniquenessValidator->validate(
+                $batchId
+            );
+
             return $this->finishBatch(
                 $batchId
             );
         } catch (Throwable $error) {
-            $this->transitionBatch->execute(
-                $batchId,
-                ImportBatchStatus::FAILED
-            );
+            try {
+                $this->failBatchIfStillValidating(
+                    $batchId
+                );
+            } catch (Throwable $failureMarkerError) {
+                report(
+                    $failureMarkerError
+                );
+            }
 
             throw $error;
         }
+    }
+
+    private function failBatchIfStillValidating(
+        int $batchId
+    ): void {
+        DB::connection()->transaction(
+            function () use ($batchId): void {
+                $batch = ImportBatch::query()
+                    ->lockForUpdate()
+                    ->findOrFail($batchId);
+
+                if (
+                    $batch->status
+                    !== ImportBatchStatus::VALIDATING
+                ) {
+                    return;
+                }
+
+                $this->transitionBatch->execute(
+                    $batchId,
+                    ImportBatchStatus::FAILED
+                );
+            }
+        );
     }
 
     private function claimBatch(
