@@ -2,6 +2,7 @@
 
 use App\Authorization\PermissionResolver;
 use App\Http\Controllers\Api\PersonController;
+use App\Http\Controllers\Api\PersonImportController;
 use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\UserProfileController;
 use Illuminate\Http\Request;
@@ -71,6 +72,15 @@ Route::post('/personas', [PersonController::class, 'store'])
         'siga.permission:personas.crear',
     ]);
 
+Route::get(
+    '/personas/importaciones/{batchUuid}',
+    [PersonImportController::class, 'show']
+)
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+        'siga.permission:personas.importar',
+    ]);
 Route::get('/personas', [PersonController::class, 'index'])
     ->middleware([
         'auth:sanctum',
