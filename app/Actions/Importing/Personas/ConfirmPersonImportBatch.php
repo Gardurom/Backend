@@ -42,6 +42,12 @@ final class ConfirmPersonImportBatch
                     );
                 }
 
+                if ($batch->valid_rows < 1) {
+                    throw new InvalidImportBatchConfirmation(
+                        'El lote debe contener al menos una fila valida para ser confirmado.'
+                    );
+                }
+
                 $queued =
                     $this->transitionBatch
                         ->execute(

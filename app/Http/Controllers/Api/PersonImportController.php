@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Importing\Personas\ConfirmPersonImportBatch;
 use App\Actions\Importing\Personas\CreateAndValidatePersonImportBatch;
 use App\Http\Controllers\Controller;
+use App\Importing\InvalidImportBatchConfirmation;
 use App\Importing\InvalidXlsxImportSource;
 use App\Importing\Personas\InvalidPersonImportTemplate;
 use App\Importing\Personas\PersonImportTemplateV2;
@@ -56,6 +58,47 @@ final class PersonImportController extends Controller
                 ),
             ],
             201
+        );
+    }
+
+    public function confirm(
+        string $batchUuid,
+        ConfirmPersonImportBatch $confirmBatch
+    ): JsonResponse {
+        $batch = ImportBatch::query()
+            ->where(
+                'uuid',
+                $batchUuid
+            )
+            ->where(
+                'import_type',
+                'PERSONAS'
+            )
+            ->firstOrFail();
+
+        try {
+            $confirmed =
+                $confirmBatch->execute(
+                    $batch->id
+                );
+        } catch (
+            InvalidImportBatchConfirmation $exception
+        ) {
+            return response()->json(
+                [
+                    'message' => $exception->getMessage(),
+                ],
+                409
+            );
+        }
+
+        return response()->json(
+            [
+                'data' => $this->publicBatchData(
+                    $confirmed
+                ),
+            ],
+            202
         );
     }
 

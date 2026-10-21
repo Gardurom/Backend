@@ -5,6 +5,7 @@ namespace Tests\Functional\Importing;
 use App\Actions\Importing\Personas\ConfirmPersonImportBatch;
 use App\Actions\Importing\TransitionImportBatch;
 use App\Importing\ImportBatchStatus;
+use App\Importing\InvalidImportBatchConfirmation;
 use App\Jobs\Importing\Personas\ProcessPersonImportBatchJob;
 use App\Models\ImportBatch;
 use DomainException;
@@ -77,6 +78,58 @@ class ConfirmPersonImportBatchTest extends FunctionalTestCase
                 ProcessPersonImportBatchJob $job
             ): bool => $job->batchId
                 === $batch->id
+        );
+    }
+
+    public function test_rejects_ready_batch_without_valid_rows(): void
+    {
+        Queue::fake();
+
+        $batch = $this->createReadyBatch(
+            validRows: 0,
+            invalidRows: 2
+        );
+
+        try {
+            $this->app->make(
+                ConfirmPersonImportBatch::class
+            )->execute(
+                $batch->id
+            );
+        } catch (InvalidImportBatchConfirmation $exception) {
+            self::assertSame(
+                'El lote debe contener al menos una fila valida para ser confirmado.',
+                $exception->getMessage()
+            );
+
+            $batch->refresh();
+
+            self::assertSame(
+                ImportBatchStatus::READY,
+                $batch->status
+            );
+
+            self::assertSame(
+                0,
+                $batch->valid_rows
+            );
+
+            self::assertSame(
+                2,
+                $batch->invalid_rows
+            );
+
+            self::assertNull(
+                $batch->confirmed_at
+            );
+
+            Queue::assertNothingPushed();
+
+            return;
+        }
+
+        self::fail(
+            'Un lote sin filas validas no debe entrar a procesamiento.'
         );
     }
 

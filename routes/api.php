@@ -81,6 +81,16 @@ Route::post(
         'siga.session.absolute',
         'siga.permission:personas.importar',
     ]);
+Route::post(
+    '/personas/importaciones/{batchUuid}/confirmar',
+    [PersonImportController::class, 'confirm']
+)
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+        'siga.permission:personas.importar',
+        'siga.reauthenticated',
+    ]);
 Route::get(
     '/personas/importaciones/{batchUuid}',
     [PersonImportController::class, 'show']
