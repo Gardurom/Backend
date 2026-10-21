@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Storage;
 
 final class CreateAndValidatePersonImportBatch
 {
+    private const MAX_DATA_ROWS = 5000;
+
     public function __construct(
         private readonly CreateImportBatch $createBatch,
         private readonly StageImportRows $stageRows,
@@ -77,7 +79,7 @@ final class CreateAndValidatePersonImportBatch
             );
         }
 
-        $hasRows = false;
+        $dataRows = 0;
         $columnsChecked = false;
 
         foreach (
@@ -98,10 +100,16 @@ final class CreateAndValidatePersonImportBatch
                 $columnsChecked = true;
             }
 
-            $hasRows = true;
+            $dataRows++;
+
+            if ($dataRows > self::MAX_DATA_ROWS) {
+                throw new InvalidXlsxImportSource(
+                    'El archivo XLSX no puede contener mas de 5000 filas de datos.'
+                );
+            }
         }
 
-        if (! $hasRows) {
+        if ($dataRows === 0) {
             throw new InvalidXlsxImportSource(
                 'El archivo XLSX debe contener al menos una fila de datos.'
             );

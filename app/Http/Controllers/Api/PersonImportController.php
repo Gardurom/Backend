@@ -2,15 +2,63 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Importing\Personas\CreateAndValidatePersonImportBatch;
 use App\Http\Controllers\Controller;
+use App\Importing\InvalidXlsxImportSource;
+use App\Importing\Personas\InvalidPersonImportTemplate;
 use App\Importing\Personas\PersonImportTemplateV2;
 use App\Models\ImportBatch;
 use App\Models\ImportRow;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Validation\ValidationException;
 
 final class PersonImportController extends Controller
 {
+    public function store(
+        Request $request,
+        CreateAndValidatePersonImportBatch $createAndValidate
+    ): JsonResponse {
+        $validated =
+            $request->validate([
+                'archivo' => [
+                    'required',
+                    'file',
+                    'extensions:xlsx',
+                    'max:5120',
+                ],
+            ]);
+
+        try {
+            $batch =
+                $createAndValidate->execute(
+                    (int) $request
+                        ->user()
+                        ->getAuthIdentifier(),
+                    $validated['archivo']
+                );
+        } catch (
+            InvalidXlsxImportSource|
+            InvalidPersonImportTemplate $exception
+        ) {
+            throw ValidationException::withMessages([
+                'archivo' => [
+                    $exception->getMessage(),
+                ],
+            ]);
+        }
+
+        return response()->json(
+            [
+                'data' => $this->publicBatchData(
+                    $batch
+                ),
+            ],
+            201
+        );
+    }
+
     public function show(
         string $batchUuid,
         PersonImportTemplateV2 $template
@@ -82,19 +130,9 @@ final class PersonImportController extends Controller
         );
 
         return response()->json([
-            'data' => [
-                'uuid' => $batch->uuid,
-                'original_filename' => $batch->original_filename,
-                'status' => $batch->status->value,
-                'total_rows' => $batch->total_rows,
-                'valid_rows' => $batch->valid_rows,
-                'invalid_rows' => $batch->invalid_rows,
-                'processed_rows' => $batch->processed_rows,
-                'failed_rows' => $batch->failed_rows,
-                'confirmed_at' => $batch->confirmed_at?->toISOString(),
-                'started_at' => $batch->started_at?->toISOString(),
-                'finished_at' => $batch->finished_at?->toISOString(),
-            ],
+            'data' => $this->publicBatchData(
+                $batch
+            ),
             'rows' => $publicRows,
             'meta' => [
                 'current_page' => $rows->currentPage(),
@@ -103,5 +141,26 @@ final class PersonImportController extends Controller
                 'total' => $rows->total(),
             ],
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function publicBatchData(
+        ImportBatch $batch
+    ): array {
+        return [
+            'uuid' => $batch->uuid,
+            'original_filename' => $batch->original_filename,
+            'status' => $batch->status->value,
+            'total_rows' => $batch->total_rows,
+            'valid_rows' => $batch->valid_rows,
+            'invalid_rows' => $batch->invalid_rows,
+            'processed_rows' => $batch->processed_rows,
+            'failed_rows' => $batch->failed_rows,
+            'confirmed_at' => $batch->confirmed_at?->toISOString(),
+            'started_at' => $batch->started_at?->toISOString(),
+            'finished_at' => $batch->finished_at?->toISOString(),
+        ];
     }
 }

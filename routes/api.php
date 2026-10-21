@@ -72,6 +72,15 @@ Route::post('/personas', [PersonController::class, 'store'])
         'siga.permission:personas.crear',
     ]);
 
+Route::post(
+    '/personas/importaciones',
+    [PersonImportController::class, 'store']
+)
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+        'siga.permission:personas.importar',
+    ]);
 Route::get(
     '/personas/importaciones/{batchUuid}',
     [PersonImportController::class, 'show']
