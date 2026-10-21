@@ -181,6 +181,108 @@ class PersonImportApiPreviewTest extends HttpFunctionalTestCase
         );
     }
 
+    public function test_import_detail_can_follow_batch_after_confirmation(): void
+    {
+        $user =
+            $this->createAuthorizedUser(
+                'import.preview.follow-up@siga.test'
+            );
+
+        $batch =
+            $this->createReadyBatch(
+                $user,
+                3
+            );
+
+        $batch->status =
+            ImportBatchStatus::PROCESSING;
+
+        $batch->confirmed_at =
+            now()->subMinute();
+
+        $batch->started_at =
+            now();
+
+        $batch->processed_rows = 1;
+
+        $batch->save();
+
+        $processedRow =
+            $batch->rows()
+                ->where(
+                    'status',
+                    ImportRowStatus::VALID
+                )
+                ->orderBy('row_number')
+                ->firstOrFail();
+
+        $processedRow->status =
+            ImportRowStatus::PROCESSED;
+
+        $processedRow->result_data = [
+            'id_persona' => '01900000-0000-7000-8000-000000000001',
+        ];
+
+        $processedRow->save();
+
+        $this->actingAs(
+            $user
+        );
+
+        $response =
+            $this->getJson(
+                "/api/personas/importaciones/{$batch->uuid}"
+            );
+
+        $response
+            ->assertOk()
+            ->assertJsonPath(
+                'data.status',
+                'PROCESSING'
+            )
+            ->assertJsonPath(
+                'data.processed_rows',
+                1
+            );
+
+        $payload =
+            $response->json();
+
+        self::assertIsArray(
+            $payload
+        );
+
+        self::assertNotNull(
+            $payload['data']['confirmed_at']
+        );
+
+        self::assertNotNull(
+            $payload['data']['started_at']
+        );
+
+        self::assertNull(
+            $payload['data']['finished_at']
+        );
+
+        $processedRows =
+            array_values(
+                array_filter(
+                    $payload['rows'],
+                    static fn (array $row): bool => $row['status'] === 'PROCESSED'
+                )
+            );
+
+        self::assertCount(
+            1,
+            $processedRows
+        );
+
+        self::assertSame(
+            '01900000-0000-7000-8000-000000000001',
+            $processedRows[0]['result_data']['id_persona']
+        );
+    }
+
     public function test_preview_rows_are_ordered_and_paginated(): void
     {
         $user =
