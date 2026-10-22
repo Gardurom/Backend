@@ -12,6 +12,43 @@ use Tests\Functional\HttpFunctionalTestCase;
 
 class PersonImportApiConfirmationTest extends HttpFunctionalTestCase
 {
+    public function test_authorized_user_cannot_confirm_another_users_batch(): void
+    {
+        Queue::fake();
+
+        $owner = $this->createAuthorizedUser(
+            'import.confirm.foreign.owner@siga.test'
+        );
+
+        $viewer = $this->createAuthorizedUser(
+            'import.confirm.foreign.viewer@siga.test'
+        );
+
+        $batch = $this->createReadyBatch(
+            $owner,
+            validRows: 1
+        );
+
+        $response = $this->postAsRecentlyReauthenticated(
+            $viewer,
+            '/api/personas/importaciones/'
+            .$batch->uuid
+            .'/confirmar'
+        );
+
+        $response->assertNotFound();
+
+        $batch->refresh();
+
+        self::assertSame(
+            ImportBatchStatus::READY,
+            $batch->status
+        );
+
+        self::assertNull($batch->confirmed_at);
+
+        Queue::assertNothingPushed();
+    }
     public function test_guest_cannot_confirm_person_import(): void
     {
         $this->postJson(

@@ -18,6 +18,50 @@ use Illuminate\Validation\ValidationException;
 
 final class PersonImportController extends Controller
 {
+    public function index(Request $request): JsonResponse
+    {
+        $batches = ImportBatch::query()
+            ->select([
+                'id',
+                'uuid',
+                'original_filename',
+                'status',
+                'total_rows',
+                'valid_rows',
+                'invalid_rows',
+                'processed_rows',
+                'failed_rows',
+                'confirmed_at',
+                'started_at',
+                'finished_at',
+                'created_at',
+            ])
+            ->where('import_type', 'PERSONAS')
+            ->where(
+                'created_by',
+                (int) $request->user()->getAuthIdentifier()
+            )
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(15);
+
+        $data = $batches->getCollection()
+            ->map(fn (ImportBatch $batch): array => [
+                ...$this->publicBatchData($batch),
+                'created_at' => $batch->created_at?->toISOString(),
+            ])
+            ->all();
+
+        return response()->json([
+            'data' => $data,
+            'meta' => [
+                'current_page' => $batches->currentPage(),
+                'per_page' => $batches->perPage(),
+                'last_page' => $batches->lastPage(),
+                'total' => $batches->total(),
+            ],
+        ]);
+    }
     public function store(
         Request $request,
         CreateAndValidatePersonImportBatch $createAndValidate
@@ -62,6 +106,7 @@ final class PersonImportController extends Controller
     }
 
     public function confirm(
+        Request $request,
         string $batchUuid,
         ConfirmPersonImportBatch $confirmBatch
     ): JsonResponse {
@@ -73,6 +118,10 @@ final class PersonImportController extends Controller
             ->where(
                 'import_type',
                 'PERSONAS'
+            )
+            ->where(
+                'created_by',
+                (int) $request->user()->getAuthIdentifier()
             )
             ->firstOrFail();
 
@@ -103,6 +152,7 @@ final class PersonImportController extends Controller
     }
 
     public function show(
+        Request $request,
         string $batchUuid,
         PersonImportTemplateV2 $template
     ): JsonResponse {
@@ -128,6 +178,10 @@ final class PersonImportController extends Controller
             ->where(
                 'import_type',
                 'PERSONAS'
+            )
+            ->where(
+                'created_by',
+                (int) $request->user()->getAuthIdentifier()
             )
             ->firstOrFail();
 

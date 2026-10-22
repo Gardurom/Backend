@@ -12,6 +12,108 @@ use Tests\Functional\HttpFunctionalTestCase;
 
 class PersonImportApiPreviewTest extends HttpFunctionalTestCase
 {
+    public function test_history_only_lists_own_person_imports(): void
+    {
+        $owner = $this->createAuthorizedUser(
+            'import.history.owner@siga.test'
+        );
+
+        $other = $this->createAuthorizedUser(
+            'import.history.other@siga.test'
+        );
+
+        $first = $this->createReadyBatch($owner, 1);
+        $second = $this->createReadyBatch($owner, 1);
+        $foreign = $this->createReadyBatch($other, 1);
+
+        $this->actingAs($owner);
+
+        $response = $this->getJson(
+            '/api/personas/importaciones'
+        );
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.per_page', 15)
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.uuid', $second->uuid)
+            ->assertJsonPath('data.1.uuid', $first->uuid);
+
+        $payload = $response->json();
+
+        self::assertNotContains(
+            $foreign->uuid,
+            array_column($payload['data'], 'uuid')
+        );
+
+        foreach ($payload['data'] as $item) {
+            self::assertArrayHasKey('created_at', $item);
+            self::assertArrayHasKey('original_filename', $item);
+            self::assertArrayHasKey('status', $item);
+            self::assertArrayNotHasKey('created_by', $item);
+            self::assertArrayNotHasKey('storage_path', $item);
+            self::assertArrayNotHasKey('file_sha256', $item);
+        }
+    }
+
+    public function test_history_is_paginated(): void
+    {
+        $owner = $this->createAuthorizedUser(
+            'import.history.pagination@siga.test'
+        );
+
+        $batches = [];
+
+        for ($i = 0; $i < 16; $i++) {
+            $batches[] = $this->createReadyBatch($owner, 1);
+        }
+
+        $this->actingAs($owner);
+
+        $firstPage = $this->getJson(
+            '/api/personas/importaciones?page=1'
+        );
+
+        $firstPage
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.total', 16)
+            ->assertJsonCount(15, 'data');
+
+        $secondPage = $this->getJson(
+            '/api/personas/importaciones?page=2'
+        );
+
+        $secondPage
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.total', 16)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $batches[0]->uuid);
+    }
+
+    public function test_authorized_user_cannot_view_another_users_batch(): void
+    {
+        $owner = $this->createAuthorizedUser(
+            'import.preview.foreign.owner@siga.test'
+        );
+
+        $viewer = $this->createAuthorizedUser(
+            'import.preview.foreign.viewer@siga.test'
+        );
+
+        $batch = $this->createReadyBatch($owner, 1);
+
+        $this->actingAs($viewer);
+
+        $this->getJson(
+            "/api/personas/importaciones/{$batch->uuid}"
+        )->assertNotFound();
+    }
     public function test_guest_cannot_view_person_import_preview(): void
     {
         $creator = User::factory()->create([

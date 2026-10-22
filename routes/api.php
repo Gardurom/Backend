@@ -72,6 +72,15 @@ Route::post('/personas', [PersonController::class, 'store'])
         'siga.permission:personas.crear',
     ]);
 
+Route::get(
+    '/personas/importaciones',
+    [PersonImportController::class, 'index']
+)
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+        'siga.permission:personas.importar',
+    ]);
 Route::post(
     '/personas/importaciones',
     [PersonImportController::class, 'store']
