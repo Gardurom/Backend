@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Geography\MexicoGeographyLoader;
+use App\Geography\SeedMexicoGeography;
 use App\Importing\Personas\DatabasePersonImportReferenceLookup;
 use App\Importing\Personas\PersonImportReferenceLookup;
 use Illuminate\Contracts\Foundation\Application;
@@ -15,6 +17,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(
+            MexicoGeographyLoader::class,
+            static function (Application $app): MexicoGeographyLoader {
+                return new SeedMexicoGeography(
+                    $app->make('db')->connection()
+                );
+            }
+        );
+
         $this->app->bind(
             PersonImportReferenceLookup::class,
             static function (Application $app): PersonImportReferenceLookup {
