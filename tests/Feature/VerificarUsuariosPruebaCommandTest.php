@@ -36,7 +36,7 @@ class VerificarUsuariosPruebaCommandTest extends TestCase
     {
         $this->app->detectEnvironment(fn () => 'local');
 
-        config()->set('database.default', 'sqlite');
+        config()->set('database.default', 'conexion_no_autorizada');
 
         $resultado = Artisan::call(
             'siga:usuarios-prueba',

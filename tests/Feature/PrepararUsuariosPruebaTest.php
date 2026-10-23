@@ -17,7 +17,7 @@ class PrepararUsuariosPruebaTest extends TestCase
 
         try {
             $this->app->detectEnvironment(fn () => 'local');
-            config()->set('database.default', 'sqlite');
+            config()->set('database.default', 'conexion_no_autorizada');
 
             DB::shouldReceive('selectOne')->never();
             DB::shouldReceive('transaction')->never();
@@ -49,7 +49,7 @@ class PrepararUsuariosPruebaTest extends TestCase
 
         try {
             $this->app->detectEnvironment(fn () => 'production');
-            config()->set('database.default', 'sqlite');
+            config()->set('database.default', 'conexion_no_autorizada');
 
             DB::shouldReceive('selectOne')->never();
             DB::shouldReceive('transaction')->never();
@@ -73,7 +73,7 @@ class PrepararUsuariosPruebaTest extends TestCase
         }
     }
 
-    public function test_rechaza_conexion_sqlite(): void
+    public function test_rechaza_conexion_no_autorizada(): void
     {
         $anterior = getenv('SIGA_PERMITIR_USUARIOS_PRUEBA');
 
@@ -81,7 +81,7 @@ class PrepararUsuariosPruebaTest extends TestCase
 
         try {
             $this->app->detectEnvironment(fn () => 'local');
-            config()->set('database.default', 'sqlite');
+            config()->set('database.default', 'conexion_no_autorizada');
 
             DB::shouldReceive('selectOne')->never();
             DB::shouldReceive('transaction')->never();

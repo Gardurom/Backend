@@ -55,7 +55,7 @@ final class SeedMexicoGeographyCommandTest extends TestCase
     {
         $connection = $this->createMock(Connection::class);
 
-        $connection->method('getDriverName')->willReturn('sqlite');
+        $connection->method('getDriverName')->willReturn('conexion_no_autorizada');
 
         $connection->expects(self::never())->method('selectOne');
         $connection->expects(self::never())->method('insert');
