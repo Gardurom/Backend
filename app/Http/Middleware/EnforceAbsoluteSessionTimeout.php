@@ -21,18 +21,13 @@ class EnforceAbsoluteSessionTimeout
             'siga_authenticated_at'
         );
 
-        if (! is_int($authenticatedAt)) {
-            $request->session()->put(
-                'siga_authenticated_at',
-                now()->timestamp
-            );
-
-            return $next($request);
-        }
+        $now = now()->timestamp;
 
         if (
-            now()->timestamp - $authenticatedAt
-            >= self::MAX_SESSION_AGE_SECONDS
+            ! is_int($authenticatedAt)
+            || $authenticatedAt > $now
+            || $now - $authenticatedAt
+                >= self::MAX_SESSION_AGE_SECONDS
         ) {
             Auth::guard('web')->logout();
 

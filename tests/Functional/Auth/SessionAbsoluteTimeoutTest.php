@@ -84,7 +84,7 @@ class SessionAbsoluteTimeoutTest extends HttpFunctionalTestCase
             ->assertJsonPath('id', $user->id);
     }
 
-    public function test_legacy_authenticated_session_initializes_absolute_start_time(): void
+    public function test_authenticated_session_without_start_time_is_rejected(): void
     {
         $user = User::factory()->create([
             'name' => 'Usuario Sesion Legada SIGA',
@@ -100,11 +100,44 @@ class SessionAbsoluteTimeoutTest extends HttpFunctionalTestCase
             ->withHeader('Origin', 'http://localhost')
             ->getJson('/api/user');
 
-        $response
-            ->assertOk()
-            ->assertSessionHas(
-                'siga_authenticated_at',
-                fn ($value): bool => is_int($value)
-            );
+        $response->assertUnauthorized();
+    }
+
+    public function test_authenticated_session_with_future_start_time_is_rejected(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Usuario Fecha Futura SIGA',
+            'email' => 'absolute.future@siga.test',
+        ]);
+
+        $this->actingAs($user);
+
+        $this->withSession([
+            'siga_authenticated_at' => now()
+                ->addMinute()
+                ->timestamp,
+        ]);
+
+        $this->withHeader('Origin', 'http://localhost')
+            ->getJson('/api/user')
+            ->assertUnauthorized();
+    }
+
+    public function test_authenticated_session_with_invalid_start_time_is_rejected(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Usuario Fecha Invalida SIGA',
+            'email' => 'absolute.invalid@siga.test',
+        ]);
+
+        $this->actingAs($user);
+
+        $this->withSession([
+            'siga_authenticated_at' => 'invalid',
+        ]);
+
+        $this->withHeader('Origin', 'http://localhost')
+            ->getJson('/api/user')
+            ->assertUnauthorized();
     }
 }
