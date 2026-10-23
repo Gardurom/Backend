@@ -9,35 +9,6 @@ use LogicException;
 
 class PrepararUsuariosPrueba
 {
-    private const CATALOGO = [
-        'prueba.admin@ejemplo.test' => [
-            'nombre' => 'PRUEBA ADMINISTRADOR',
-            'roles' => ['ROL_ADMIN_SISTEMA'],
-        ],
-        'prueba.gestor@ejemplo.test' => [
-            'nombre' => 'PRUEBA GESTOR PERSONAS',
-            'roles' => ['ROL_GESTOR_PERSONAS'],
-        ],
-        'prueba.consulta@ejemplo.test' => [
-            'nombre' => 'PRUEBA CONSULTA PERSONAS',
-            'roles' => ['ROL_CONSULTA_PERSONAS'],
-        ],
-        'prueba.auditor@ejemplo.test' => [
-            'nombre' => 'PRUEBA AUDITOR',
-            'roles' => ['ROL_AUDITOR'],
-        ],
-        'prueba.sinrol@ejemplo.test' => [
-            'nombre' => 'PRUEBA SIN ROL',
-            'roles' => [],
-        ],
-        'prueba.multirrol@ejemplo.test' => [
-            'nombre' => 'PRUEBA MULTIRROL',
-            'roles' => [
-                'ROL_CONSULTA_PERSONAS',
-                'ROL_GESTOR_PERSONAS',
-            ],
-        ],
-    ];
 
     public function ejecutar(string $password): array
     {
@@ -50,7 +21,7 @@ class PrepararUsuariosPrueba
         }
 
         return DB::transaction(function () use ($password): array {
-            $emails = array_keys(self::CATALOGO);
+            $emails = CatalogoUsuariosPrueba::correos();
 
             if (
                 User::query()
@@ -62,12 +33,7 @@ class PrepararUsuariosPrueba
                 );
             }
 
-            $codigos = [
-                'ROL_ADMIN_SISTEMA',
-                'ROL_GESTOR_PERSONAS',
-                'ROL_CONSULTA_PERSONAS',
-                'ROL_AUDITOR',
-            ];
+            $codigos = CatalogoUsuariosPrueba::ROLES_REQUERIDOS;
 
             $roles = Role::query()
                 ->whereIn('code', $codigos)
@@ -82,7 +48,7 @@ class PrepararUsuariosPrueba
 
             $resultado = [];
 
-            foreach (self::CATALOGO as $email => $datos) {
+            foreach (CatalogoUsuariosPrueba::CUENTAS as $email => $datos) {
                 $usuario = User::query()->create([
                     'id_persona' => null,
                     'name' => $datos['nombre'],

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\User\CatalogoUsuariosPrueba;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -55,28 +56,9 @@ class VerificarUsuariosPrueba extends Command
                 return self::FAILURE;
             }
 
-            $catalogo = [
-                'prueba.admin@ejemplo.test' =>
-                    ['ROL_ADMIN_SISTEMA'],
-                'prueba.gestor@ejemplo.test' =>
-                    ['ROL_GESTOR_PERSONAS'],
-                'prueba.consulta@ejemplo.test' =>
-                    ['ROL_CONSULTA_PERSONAS'],
-                'prueba.auditor@ejemplo.test' =>
-                    ['ROL_AUDITOR'],
-                'prueba.sinrol@ejemplo.test' => [],
-                'prueba.multirrol@ejemplo.test' => [
-                    'ROL_CONSULTA_PERSONAS',
-                    'ROL_GESTOR_PERSONAS',
-                ],
-            ];
+            $catalogo = CatalogoUsuariosPrueba::CUENTAS;
 
-            $rolesEsperados = [
-                'ROL_ADMIN_SISTEMA',
-                'ROL_GESTOR_PERSONAS',
-                'ROL_CONSULTA_PERSONAS',
-                'ROL_AUDITOR',
-            ];
+            $rolesEsperados = CatalogoUsuariosPrueba::ROLES_REQUERIDOS;
 
             $rolesExistentes = $db->table('system.roles')
                 ->whereIn('code', $rolesEsperados)
