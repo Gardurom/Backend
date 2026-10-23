@@ -75,7 +75,29 @@ class PersonApiShowTest extends HttpFunctionalTestCase
             ->assertJsonPath(
                 'nombres',
                 'PERSONA CONSULTADA API'
-            );
+            )
+            ->assertJsonPath(
+                'informacion_registro.forma_registro',
+                'NO_DETERMINADO'
+            )
+            ->assertJsonPath(
+                'informacion_registro.archivo_origen',
+                null
+            )
+            ->assertJsonPath(
+                'informacion_registro.fila_archivo',
+                null
+            )
+            ->assertJsonStructure([
+                'informacion_registro' => [
+                    'fecha_registro',
+                    'forma_registro',
+                    'registrado_por',
+                    'archivo_origen',
+                    'fila_archivo',
+                    'lote_uuid',
+                ],
+            ]);
     }
 
     public function test_explicit_deny_overrides_allow_when_showing_person(): void
@@ -139,6 +161,180 @@ class PersonApiShowTest extends HttpFunctionalTestCase
         $response->assertNotFound();
     }
 
+    public function test_authorized_user_receives_individual_registration_origin(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'RESPONSABLE REGISTRO INDIVIDUAL',
+            'email' => 'persona.origen.individual@siga.test',
+        ]);
+
+        $this->assignRole($user, 'ROL_CONSULTA_PERSONAS');
+
+        $person = $this->db->selectOne(
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            ['PERSONA ORIGEN INDIVIDUAL', 'PRUEBA']
+        );
+
+        $this->db
+            ->table('system.activities')
+            ->insert([
+                'id_usuario' => $user->id,
+                'entidad' => 'PERSONA',
+                'id_entidad' => $person->id_persona,
+                'accion' => 'CREACION',
+                'datos_anteriores' => null,
+                'datos_nuevos' => json_encode(
+                    ['origen_registro' => 'INDIVIDUAL'],
+                    JSON_THROW_ON_ERROR
+                ),
+                'campos_modificados' => json_encode(
+                    [],
+                    JSON_THROW_ON_ERROR
+                ),
+            ]);
+
+        $this->actingAs($user);
+
+        $response = $this->getJson(
+            '/api/personas/'.$person->id_persona
+        );
+
+        $response
+            ->assertOk()
+            ->assertJsonPath(
+                'informacion_registro.forma_registro',
+                'INDIVIDUAL'
+            )
+            ->assertJsonPath(
+                'informacion_registro.registrado_por',
+                'RESPONSABLE REGISTRO INDIVIDUAL'
+            )
+            ->assertJsonPath(
+                'informacion_registro.archivo_origen',
+                null
+            )
+            ->assertJsonPath(
+                'informacion_registro.fila_archivo',
+                null
+            )
+            ->assertJsonPath(
+                'informacion_registro.lote_uuid',
+                null
+            );
+    }
+    public function test_authorized_user_receives_mass_registration_origin(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'RESPONSABLE IMPORTACION PERSONAS',
+            'email' => 'persona.origen.masivo@siga.test',
+        ]);
+
+        $this->assignRole($user, 'ROL_CONSULTA_PERSONAS');
+
+        $person = $this->db->selectOne(
+            'INSERT INTO institutional.persons
+                (nombres, apellido_paterno)
+             VALUES (?, ?)
+             RETURNING id_persona',
+            ['PERSONA ORIGEN MASIVO', 'PRUEBA']
+        );
+
+        $this->db->table('system.activities')->insert([
+            'id_usuario' => $user->id,
+            'entidad' => 'PERSONA',
+            'id_entidad' => $person->id_persona,
+            'accion' => 'CREACION',
+            'datos_anteriores' => null,
+            'datos_nuevos' => json_encode(
+                ['origen_registro' => 'MASIVO'],
+                JSON_THROW_ON_ERROR
+            ),
+            'campos_modificados' => json_encode(
+                [],
+                JSON_THROW_ON_ERROR
+            ),
+        ]);
+
+        $batchUuid = (string) \Illuminate\Support\Str::uuid();
+
+        $batchId = $this->db
+            ->table('system.import_batches')
+            ->insertGetId([
+                'uuid' => $batchUuid,
+                'import_type' => 'PERSONAS',
+                'status' => 'COMPLETED',
+                'original_filename' => 'personal_octubre.xlsx',
+                'storage_disk' => 'local',
+                'storage_path' => 'test/personal_octubre.xlsx',
+                'file_sha256' => str_repeat('a', 64),
+                'total_rows' => 1,
+                'valid_rows' => 1,
+                'invalid_rows' => 0,
+                'processed_rows' => 1,
+                'failed_rows' => 0,
+                'created_by' => $user->id,
+            ]);
+
+        $this->db->table('system.import_rows')->insert([
+            'import_batch_id' => $batchId,
+            'row_number' => 25,
+            'status' => 'PROCESSED',
+            'raw_data' => json_encode(
+                ['nombres' => 'PERSONA ORIGEN MASIVO'],
+                JSON_THROW_ON_ERROR
+            ),
+            'normalized_data' => json_encode(
+                ['nombres' => 'PERSONA ORIGEN MASIVO'],
+                JSON_THROW_ON_ERROR
+            ),
+            'validation_errors' => json_encode(
+                [],
+                JSON_THROW_ON_ERROR
+            ),
+            'result_data' => json_encode(
+                ['id_persona' => $person->id_persona],
+                JSON_THROW_ON_ERROR
+            ),
+        ]);
+
+        $this->actingAs($user);
+
+        $response = $this->getJson(
+            '/api/personas/'.$person->id_persona
+        );
+
+        $response
+            ->assertOk()
+            ->assertJsonPath(
+                'informacion_registro.forma_registro',
+                'MASIVO'
+            )
+            ->assertJsonPath(
+                'informacion_registro.registrado_por',
+                'RESPONSABLE IMPORTACION PERSONAS'
+            )
+            ->assertJsonPath(
+                'informacion_registro.archivo_origen',
+                'personal_octubre.xlsx'
+            )
+            ->assertJsonPath(
+                'informacion_registro.fila_archivo',
+                25
+            )
+            ->assertJsonPath(
+                'informacion_registro.lote_uuid',
+                $batchUuid
+            )
+            ->assertJsonMissingPath(
+                'informacion_registro.storage_path'
+            )
+            ->assertJsonMissingPath(
+                'informacion_registro.file_sha256'
+            );
+    }
     private function assignRole(
         User $user,
         string $roleCode

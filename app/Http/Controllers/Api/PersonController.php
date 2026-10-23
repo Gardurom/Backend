@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Actions\Persona\FindPerson;
+use App\Actions\Persona\FindPersonRegistrationOrigin;
 use App\Actions\Persona\RegisterPerson;
 use App\Actions\Persona\ReinstatePerson;
 use App\Actions\Persona\UpdatePerson;
@@ -62,11 +63,18 @@ class PersonController extends Controller
 
     public function show(
         string $idPersona,
-        FindPerson $findPerson
+        FindPerson $findPerson,
+        FindPersonRegistrationOrigin $findOrigin
     ): JsonResponse {
         $person = $findPerson->execute($idPersona);
 
-        return response()->json($person);
+        $response = $person->toArray();
+
+        $response['informacion_registro'] = $findOrigin->execute(
+            $idPersona
+        );
+
+        return response()->json($response);
     }
 
     public function update(

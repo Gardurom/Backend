@@ -59,6 +59,7 @@ class RegisterPersonActionTest extends FunctionalTestCase
             [
                 'num_expediente' => $person->num_expediente,
                 'estatus' => 'ACTIVO',
+                'origen_registro' => 'INDIVIDUAL',
             ],
             json_decode(
                 $activity->datos_nuevos,

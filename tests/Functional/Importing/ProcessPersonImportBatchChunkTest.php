@@ -137,6 +137,29 @@ class ProcessPersonImportBatchChunkTest extends FunctionalTestCase
                 )
                 ->count()
         );
+        $activities = $this->db
+            ->table('system.activities')
+            ->where('id_usuario', $batch->created_by)
+            ->where('entidad', 'PERSONA')
+            ->where('accion', 'CREACION')
+            ->orderBy('id_actividad')
+            ->get(['datos_nuevos']);
+
+        self::assertCount(2, $activities);
+
+        foreach ($activities as $activity) {
+            $auditData = json_decode(
+                $activity->datos_nuevos,
+                true,
+                512,
+                JSON_THROW_ON_ERROR
+            );
+
+            self::assertSame(
+                'MASIVO',
+                $auditData['origen_registro'] ?? null
+            );
+        }
     }
 
     #[DataProvider('uniqueRaceFields')]

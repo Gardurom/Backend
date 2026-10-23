@@ -14,10 +14,15 @@ class RegisterPerson
      *
      * @param  array<string, mixed>  $attributes
      */
-    public function execute(int $userId, array $attributes): Person
+    public function execute(int $userId, array $attributes, string $origenRegistro = "INDIVIDUAL"): Person
     {
+        if (! in_array($origenRegistro, ['INDIVIDUAL', 'MASIVO'], true)) {
+            throw new \InvalidArgumentException(
+                'El origen de registro debe ser INDIVIDUAL o MASIVO.'
+            );
+        }
         return DB::connection()->transaction(
-            function () use ($userId, $attributes): Person {
+            function () use ($userId, $attributes, $origenRegistro): Person {
                 $allowed = (new Person)->getFillable();
 
                 $personData = Arr::only(
@@ -43,6 +48,7 @@ class RegisterPerson
                         [
                             'num_expediente' => $person->num_expediente,
                             'estatus' => $person->estatus,
+                            'origen_registro' => $origenRegistro,
                         ],
                         JSON_THROW_ON_ERROR
                     ),

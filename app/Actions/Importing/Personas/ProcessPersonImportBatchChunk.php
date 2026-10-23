@@ -157,7 +157,8 @@ final class ProcessPersonImportBatchChunk
                         $this->registerPerson
                             ->execute(
                                 $userId,
-                                $normalizedData
+                                $normalizedData,
+                                'MASIVO'
                             );
 
                     $row->status =
