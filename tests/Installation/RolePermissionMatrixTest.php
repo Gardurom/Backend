@@ -7,8 +7,11 @@ class RolePermissionMatrixTest extends InstallationTestCase
     public function test_initial_role_permission_matrix_matches_approved_design(): void
     {
         $expected = [
+            'ROL_ADMIN_SISTEMA|perfiles.ver|ALLOW',
+            'ROL_ADMIN_SISTEMA|roles.ver|ALLOW',
             'ROL_ADMIN_SISTEMA|usuarios.asignar_roles|ALLOW',
             'ROL_ADMIN_SISTEMA|usuarios.crear|ALLOW',
+            'ROL_ADMIN_SISTEMA|usuarios.ver|ALLOW',
             'ROL_AUDITOR|auditoria.ver|ALLOW',
             'ROL_CONSULTA_PERSONAS|personas.ver|ALLOW',
             'ROL_GESTOR_PERSONAS|personas.actualizar|ALLOW',

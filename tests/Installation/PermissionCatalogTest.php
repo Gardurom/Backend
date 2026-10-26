@@ -8,14 +8,17 @@ class PermissionCatalogTest extends InstallationTestCase
     {
         $expected = [
             'auditoria.ver' => 'Consultar auditoría',
+            'perfiles.ver' => 'Consultar perfiles',
             'personas.actualizar' => 'Actualizar personas',
             'personas.baja' => 'Dar de baja personas',
             'personas.crear' => 'Registrar personas',
             'personas.importar' => 'Importar personas',
             'personas.reingreso' => 'Reingresar personas',
             'personas.ver' => 'Consultar personas',
+            'roles.ver' => 'Consultar roles',
             'usuarios.asignar_roles' => 'Asignar roles a usuarios',
             'usuarios.crear' => 'Crear usuarios',
+            'usuarios.ver' => 'Consultar usuarios',
         ];
 
         $permissions = $this->db->select(
@@ -30,7 +33,10 @@ class PermissionCatalogTest extends InstallationTestCase
                  'personas.reingreso',
                  'personas.ver',
                  'usuarios.asignar_roles',
-                 'usuarios.crear'
+                 'usuarios.crear',
+                 'usuarios.ver',
+                 'perfiles.ver',
+                 'roles.ver'
              ])
              ORDER BY code"
         );
@@ -62,7 +68,10 @@ class PermissionCatalogTest extends InstallationTestCase
                  'personas.reingreso',
                  'personas.ver',
                  'usuarios.asignar_roles',
-                 'usuarios.crear'
+                 'usuarios.crear',
+                 'usuarios.ver',
+                 'perfiles.ver',
+                 'roles.ver'
              ])
              GROUP BY code
              HAVING COUNT(*) > 1"
