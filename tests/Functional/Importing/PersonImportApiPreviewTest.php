@@ -12,6 +12,27 @@ use Tests\Functional\HttpFunctionalTestCase;
 
 class PersonImportApiPreviewTest extends HttpFunctionalTestCase
 {
+    public function test_guest_cannot_view_person_import_history(): void
+    {
+        $this->getJson(
+            '/api/personas/importaciones'
+        )->assertUnauthorized();
+    }
+
+    public function test_user_without_permission_cannot_view_person_import_history(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'USUARIO SIN PERMISO HISTORIAL',
+            'email' => 'import.history.forbidden@siga.test',
+        ]);
+
+        $this->actingAs($user);
+
+        $this->getJson(
+            '/api/personas/importaciones'
+        )->assertForbidden();
+    }
+
     public function test_history_only_lists_own_person_imports(): void
     {
         $owner = $this->createAuthorizedUser(
