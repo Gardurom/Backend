@@ -3,7 +3,11 @@
 use App\Authorization\PermissionResolver;
 use App\Http\Controllers\Api\PersonController;
 use App\Http\Controllers\Api\PersonImportController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SessionController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\UserRoleController;
 use App\Http\Controllers\Api\UserProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -43,6 +47,61 @@ Route::put(
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+    ]);
+
+Route::get('/perfiles', [ProfileController::class, 'index'])
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+        'siga.permission:perfiles.ver',
+    ]);
+
+Route::get('/roles', [RoleController::class, 'index'])
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+        'siga.permission:roles.ver',
+    ]);
+
+Route::get('/usuarios/{user}/roles', [UserRoleController::class, 'index'])
+    ->whereNumber('user')
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+        'siga.permission:usuarios.ver',
+    ]);
+Route::delete('/usuarios/{user}/roles/{role}', [UserRoleController::class, 'destroy'])
+    ->whereNumber('user')
+    ->whereNumber('role')
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+        'siga.permission:usuarios.asignar_roles',
+        'siga.reauthenticated',
+    ]);
+
+Route::post('/usuarios/{user}/roles', [UserRoleController::class, 'store'])
+    ->whereNumber('user')
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+        'siga.permission:usuarios.asignar_roles',
+        'siga.reauthenticated',
+    ]);
+
+Route::post('/usuarios', [UserController::class, 'store'])
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+        'siga.permission:usuarios.crear',
+        'siga.reauthenticated',
+    ]);
+
+Route::get('/usuarios', [UserController::class, 'index'])
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+        'siga.permission:usuarios.ver',
     ]);
 
 Route::get('/sessions', [SessionController::class, 'index'])

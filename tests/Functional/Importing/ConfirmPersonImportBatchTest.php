@@ -284,7 +284,7 @@ class ConfirmPersonImportBatchTest extends FunctionalTestCase
     public function test_database_queue_is_part_of_confirmation_transaction(): void
     {
         self::assertSame(
-            'sync',
+            'database',
             config('queue.default')
         );
 
