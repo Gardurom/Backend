@@ -1,14 +1,15 @@
 <?php
 
 use App\Authorization\PermissionResolver;
+use App\Http\Controllers\Api\BulkUserRoleController;
 use App\Http\Controllers\Api\PersonController;
 use App\Http\Controllers\Api\PersonImportController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\UserRoleController;
 use App\Http\Controllers\Api\UserProfileController;
+use App\Http\Controllers\Api\UserRoleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -63,6 +64,15 @@ Route::get('/roles', [RoleController::class, 'index'])
         'siga.permission:roles.ver',
     ]);
 
+Route::post(
+    '/usuarios/roles/masivo',
+    [BulkUserRoleController::class, 'store']
+)->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.permission:usuarios.asignar_roles',
+    'siga.reauthenticated',
+]);
 Route::get('/usuarios/{user}/roles', [UserRoleController::class, 'index'])
     ->whereNumber('user')
     ->middleware([
@@ -89,6 +99,12 @@ Route::post('/usuarios/{user}/roles', [UserRoleController::class, 'store'])
         'siga.reauthenticated',
     ]);
 
+Route::get('/usuarios/personas-disponibles', [UserController::class, 'availablePersons'])
+    ->middleware([
+        'auth:sanctum',
+        'siga.session.absolute',
+        'siga.permission:usuarios.crear',
+    ]);
 Route::post('/usuarios', [UserController::class, 'store'])
     ->middleware([
         'auth:sanctum',
