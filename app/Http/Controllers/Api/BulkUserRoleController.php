@@ -77,22 +77,31 @@ class BulkUserRoleController extends Controller
                     ]);
                 }
 
-                $assigned = 0;
+                $assignedUserIds = [];
+                $alreadyAssignedUserIds = [];
 
                 foreach ($userIds as $userId) {
-                    $assigned += DB::table('system.user_roles')
+                    $inserted = DB::table('system.user_roles')
                         ->insertOrIgnore([
                             'user_id' => $userId,
                             'role_id' => $role->id,
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
+
+                    if ($inserted === 1) {
+                        $assignedUserIds[] = $userId;
+                    } else {
+                        $alreadyAssignedUserIds[] = $userId;
+                    }
                 }
 
                 return [
                     'selected' => count($userIds),
-                    'assigned' => $assigned,
-                    'already_assigned' => count($userIds) - $assigned,
+                    'assigned' => count($assignedUserIds),
+                    'already_assigned' => count($alreadyAssignedUserIds),
+                    'assigned_user_ids' => $assignedUserIds,
+                    'already_assigned_user_ids' => $alreadyAssignedUserIds,
                 ];
             }
         );

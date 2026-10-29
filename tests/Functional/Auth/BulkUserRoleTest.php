@@ -64,7 +64,9 @@ class BulkUserRoleTest extends HttpFunctionalTestCase
             ->assertOk()
             ->assertJsonPath('result.selected', 2)
             ->assertJsonPath('result.assigned', 2)
-            ->assertJsonPath('result.already_assigned', 0);
+            ->assertJsonPath('result.already_assigned', 0)
+            ->assertJsonPath('result.assigned_user_ids', [$first->id, $second->id])
+            ->assertJsonPath('result.already_assigned_user_ids', []);
 
         self::assertSame(
             2,
@@ -92,7 +94,9 @@ class BulkUserRoleTest extends HttpFunctionalTestCase
             ->assertOk()
             ->assertJsonPath('result.selected', 2)
             ->assertJsonPath('result.assigned', 1)
-            ->assertJsonPath('result.already_assigned', 1);
+            ->assertJsonPath('result.already_assigned', 1)
+            ->assertJsonPath('result.assigned_user_ids', [$second->id])
+            ->assertJsonPath('result.already_assigned_user_ids', [$first->id]);
     }
 
     public function test_system_admin_role_is_rejected(): void

@@ -2,6 +2,7 @@
 
 use App\Authorization\PermissionResolver;
 use App\Http\Controllers\Api\BulkUserRoleController;
+use App\Http\Controllers\Api\BulkUserRoleRemovalController;
 use App\Http\Controllers\Api\PersonController;
 use App\Http\Controllers\Api\PersonImportController;
 use App\Http\Controllers\Api\ProfileController;
@@ -71,6 +72,15 @@ Route::post(
     'auth:sanctum',
     'siga.session.absolute',
     'siga.permission:usuarios.asignar_roles',
+    'siga.reauthenticated',
+]);
+Route::post(
+    '/usuarios/roles/retiro-masivo',
+    [BulkUserRoleRemovalController::class, 'store']
+)->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.permission:usuarios.retirar_roles_masivamente',
     'siga.reauthenticated',
 ]);
 Route::get('/usuarios/{user}/roles', [UserRoleController::class, 'index'])
