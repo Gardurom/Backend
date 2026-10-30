@@ -6,9 +6,11 @@ use App\Models\User;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 use Tests\Functional\HttpFunctionalTestCase;
+use Tests\Functional\Auth\Concerns\CreatesEligibleRoleActor;
 
 class BulkUserRoleRemovalTest extends HttpFunctionalTestCase
 {
+    use CreatesEligibleRoleActor;
     private const ENDPOINT = '/api/usuarios/roles/retiro-masivo';
 
     public function test_guest_cannot_remove_roles_in_bulk(): void
@@ -21,7 +23,7 @@ class BulkUserRoleRemovalTest extends HttpFunctionalTestCase
 
     public function test_user_without_permission_cannot_remove_roles_in_bulk(): void
     {
-        $actor = User::factory()->create();
+        $actor = $this->createEligibleRoleActor();
 
         $this->actingAs($actor);
 
@@ -83,6 +85,7 @@ class BulkUserRoleRemovalTest extends HttpFunctionalTestCase
             ->withSession([
                 '_token' => $token,
                 'siga_authenticated_at' => now()->timestamp,
+                'siga_access_version' => $this->currentRoleActorAccessVersion(),
             ])
             ->withHeader('X-CSRF-TOKEN', $token)
             ->postJson(self::ENDPOINT, [
@@ -400,7 +403,7 @@ class BulkUserRoleRemovalTest extends HttpFunctionalTestCase
 
     private function createAdmin(): User
     {
-        $admin = User::factory()->create();
+        $admin = $this->createEligibleRoleActor();
 
         $admin->roles()->attach(
             $this->roleId('ROL_ADMIN_SISTEMA')
@@ -443,6 +446,7 @@ class BulkUserRoleRemovalTest extends HttpFunctionalTestCase
             ->withSession([
                 '_token' => $token,
                 'siga_authenticated_at' => now()->timestamp,
+                'siga_access_version' => $this->currentRoleActorAccessVersion(),
                 'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $token)

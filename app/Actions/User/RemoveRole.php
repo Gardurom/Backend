@@ -8,11 +8,12 @@ use Illuminate\Support\Facades\DB;
 
 class RemoveRole
 {
-    public function execute(int $userId, int $roleId): bool
+    public function execute(int $userId, int $roleId, ?int $actorId = null): bool
     {
         return DB::transaction(function () use (
             $userId,
-            $roleId
+            $roleId,
+            $actorId
         ): bool {
             $user = User::query()->findOrFail($userId);
 
@@ -28,6 +29,16 @@ class RemoveRole
                 ->where('user_id', $user->id)
                 ->where('role_id', $role->id)
                 ->delete();
+
+            if ($deleted > 0) {
+                app(RecordUserRoleActivity::class)->record(
+                    $actorId,
+                    (int) $user->id,
+                    (int) $role->id,
+                    (string) $role->code,
+                    false
+                );
+            }
 
             return $deleted > 0;
         });

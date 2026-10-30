@@ -4,9 +4,15 @@ namespace Tests\Functional\Auth;
 
 use App\Models\User;
 use Tests\Functional\HttpFunctionalTestCase;
+use Tests\Functional\Auth\Concerns\CreatesEligibleRoleActor;
+
+use Tests\Functional\Auth\Concerns\AssertsRoleActivity;
 
 class BulkUserRoleTest extends HttpFunctionalTestCase
 {
+    use AssertsRoleActivity;
+
+    use CreatesEligibleRoleActor;
     private const ENDPOINT = '/api/usuarios/roles/masivo';
 
     public function test_guest_cannot_assign_roles(): void
@@ -19,7 +25,7 @@ class BulkUserRoleTest extends HttpFunctionalTestCase
 
     public function test_user_without_permission_is_rejected(): void
     {
-        $actor = User::factory()->create();
+        $actor = $this->createEligibleRoleActor();
         $target = $this->createLinkedUser();
 
         $this->actingAs($actor);
@@ -41,6 +47,7 @@ class BulkUserRoleTest extends HttpFunctionalTestCase
             ->withSession([
                 '_token' => $token,
                 'siga_authenticated_at' => now()->timestamp,
+                'siga_access_version' => $this->currentRoleActorAccessVersion(),
             ])
             ->withHeader('X-CSRF-TOKEN', $token)
             ->postJson(self::ENDPOINT, [
@@ -165,9 +172,36 @@ class BulkUserRoleTest extends HttpFunctionalTestCase
         );
     }
 
+    public function test_auditoria_masiva_solo_para_asignaciones_efectivas(): void
+    {
+        $first = $this->createLinkedUser();
+        $second = $this->createLinkedUser();
+        $already = $this->createLinkedUser();
+        $roleId = $this->roleId('ROL_CONSULTA_PERSONAS');
+        $already->roles()->attach($roleId);
+        $admin = $this->createAdmin();
+        $this->actingAs($admin);
+
+        $this->postAuthorized([
+            'role_id' => $roleId,
+            'user_ids' => [$first->id, $second->id, $already->id],
+        ])->assertOk()
+          ->assertJsonPath('result.assigned', 2)
+          ->assertJsonPath('result.already_assigned', 1);
+
+        foreach ([$first, $second] as $target) {
+            $this->assertUserRoleActivity(
+                (int) $admin->id, (int) $target->id, $roleId,
+                'ROL_CONSULTA_PERSONAS', true
+            );
+        }
+
+        $this->assertNoUserRoleActivity((int) $already->id);
+    }
+
     private function createAdmin(): User
     {
-        $admin = User::factory()->create();
+        $admin = $this->createEligibleRoleActor();
 
         $admin->roles()->attach(
             $this->roleId('ROL_ADMIN_SISTEMA')
@@ -210,6 +244,7 @@ class BulkUserRoleTest extends HttpFunctionalTestCase
             ->withSession([
                 '_token' => $token,
                 'siga_authenticated_at' => now()->timestamp,
+                'siga_access_version' => $this->currentRoleActorAccessVersion(),
                 'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $token)

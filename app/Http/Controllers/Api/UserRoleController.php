@@ -37,6 +37,7 @@ class UserRoleController extends Controller
         ]);
     }
     public function destroy(
+        Request $request,
         int $user,
         int $role,
         RemoveRole $removeRole
@@ -55,7 +56,8 @@ class UserRoleController extends Controller
 
         $removed = $removeRole->execute(
             (int) $target->id,
-            (int) $targetRole->id
+            (int) $targetRole->id,
+            (int) $request->user()->getAuthIdentifier()
         );
 
         return response()->json([
@@ -93,7 +95,8 @@ class UserRoleController extends Controller
 
         $created = $assignRole->execute(
             (int) $target->id,
-            (int) $role->id
+            (int) $role->id,
+            (int) $request->user()->getAuthIdentifier()
         );
 
         return response()->json([

@@ -7,8 +7,12 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Tests\Functional\FunctionalTestCase;
 
+use Tests\Functional\Auth\Concerns\AssertsRoleActivity;
+
 class RemoveRoleActionTest extends FunctionalTestCase
 {
+    use AssertsRoleActivity;
+
     public function test_retira_rol_ordinario(): void
     {
         $user = User::factory()->create();
@@ -85,6 +89,23 @@ class RemoveRoleActionTest extends FunctionalTestCase
         );
 
         (new RemoveRole)->execute($user->id, 2147483647);
+    }
+
+    public function test_auditoria_retiro_individual_con_actor_y_sin_duplicados(): void
+    {
+        $actor = User::factory()->create();
+        $target = User::factory()->create();
+        $roleId = $this->roleId('ROL_CONSULTA_PERSONAS');
+        $target->roles()->attach($roleId);
+        $action = new RemoveRole();
+
+        self::assertTrue($action->execute((int) $target->id, $roleId, (int) $actor->id));
+        self::assertFalse($action->execute((int) $target->id, $roleId, (int) $actor->id));
+
+        $this->assertUserRoleActivity(
+            (int) $actor->id, (int) $target->id, $roleId,
+            'ROL_CONSULTA_PERSONAS', false
+        );
     }
 
     private function roleId(string $code): int

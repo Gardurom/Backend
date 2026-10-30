@@ -4,9 +4,15 @@ namespace Tests\Functional\Auth;
 
 use App\Models\User;
 use Tests\Functional\HttpFunctionalTestCase;
+use Tests\Functional\Auth\Concerns\CreatesEligibleRoleActor;
+
+use Tests\Functional\Auth\Concerns\AssertsRoleActivity;
 
 class UserRoleStoreTest extends HttpFunctionalTestCase
 {
+    use AssertsRoleActivity;
+
+    use CreatesEligibleRoleActor;
     public function test_guest_cannot_assign_role(): void
     {
         $this->postJson('/api/usuarios/1/roles', [
@@ -16,7 +22,7 @@ class UserRoleStoreTest extends HttpFunctionalTestCase
 
     public function test_user_without_permission_cannot_assign_role(): void
     {
-        $actor = User::factory()->create();
+        $actor = $this->createEligibleRoleActor();
         $target = User::factory()->create();
 
         $this->actingAs($actor);
@@ -108,6 +114,7 @@ class UserRoleStoreTest extends HttpFunctionalTestCase
             ->withSession([
                 '_token' => $token,
                 'siga_authenticated_at' => now()->timestamp,
+                'siga_access_version' => $this->currentRoleActorAccessVersion(),
             ])
             ->withHeader('X-CSRF-TOKEN', $token)
             ->postJson('/api/usuarios/'.$target->id.'/roles', [
@@ -141,9 +148,27 @@ class UserRoleStoreTest extends HttpFunctionalTestCase
         )->assertNotFound();
     }
 
+    public function test_auditoria_http_asignacion_unica_con_actor(): void
+    {
+        $admin = $this->createAdmin();
+        $target = User::factory()->create();
+        $roleId = $this->roleId('ROL_CONSULTA_PERSONAS');
+        $this->actingAs($admin);
+
+        $this->postWithSession((int) $target->id, $roleId)
+            ->assertCreated()->assertJsonPath('assigned', true);
+        $this->postWithSession((int) $target->id, $roleId)
+            ->assertOk()->assertJsonPath('assigned', false);
+
+        $this->assertUserRoleActivity(
+            (int) $admin->id, (int) $target->id, $roleId,
+            'ROL_CONSULTA_PERSONAS', true
+        );
+    }
+
     private function createAdmin(): User
     {
-        $user = User::factory()->create();
+        $user = $this->createEligibleRoleActor();
 
         $user->roles()->attach(
             $this->roleId('ROL_ADMIN_SISTEMA')
@@ -172,6 +197,7 @@ class UserRoleStoreTest extends HttpFunctionalTestCase
             ->withSession([
                 '_token' => $token,
                 'siga_authenticated_at' => now()->timestamp,
+                'siga_access_version' => $this->currentRoleActorAccessVersion(),
                 'siga_reauthenticated_at' => now()->timestamp,
             ])
             ->withHeader('X-CSRF-TOKEN', $token)

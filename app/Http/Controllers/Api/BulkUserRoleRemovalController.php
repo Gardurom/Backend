@@ -88,30 +88,13 @@ class BulkUserRoleRemovalController extends Controller
                     ->delete();
 
                 if ($deleted > 0) {
-                    DB::table('system.activities')->insert([
-                        'id_usuario' => $actorId,
-                        'entidad' => 'USUARIO_ROL',
-                        'id_entidad' => (string) $userId,
-                        'accion' => 'ACTUALIZACION',
-                        'datos_anteriores' => json_encode(
-                            [
-                                'role_id' => (int) $role->id,
-                                'role_code' => $role->code,
-                            ],
-                            JSON_THROW_ON_ERROR
-                        ),
-                        'datos_nuevos' => json_encode(
-                            [
-                                'role_id' => null,
-                                'role_code' => null,
-                            ],
-                            JSON_THROW_ON_ERROR
-                        ),
-                        'campos_modificados' => json_encode(
-                            ['role_id', 'role_code'],
-                            JSON_THROW_ON_ERROR
-                        ),
-                    ]);
+                    app(\App\Actions\User\RecordUserRoleActivity::class)->record(
+                        $actorId,
+                        (int) $userId,
+                        (int) $role->id,
+                        (string) $role->code,
+                        false
+                    );
 
                     $removedUserIds[] = $userId;
                 } else {

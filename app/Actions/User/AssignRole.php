@@ -8,11 +8,12 @@ use Illuminate\Support\Facades\DB;
 
 class AssignRole
 {
-    public function execute(int $userId, int $roleId): bool
+    public function execute(int $userId, int $roleId, ?int $actorId = null): bool
     {
         return DB::transaction(function () use (
             $userId,
-            $roleId
+            $roleId,
+            $actorId
         ): bool {
             $user = User::query()->findOrFail($userId);
 
@@ -31,6 +32,16 @@ class AssignRole
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+
+            if ($inserted === 1) {
+                app(RecordUserRoleActivity::class)->record(
+                    $actorId,
+                    (int) $user->id,
+                    (int) $role->id,
+                    (string) $role->code,
+                    true
+                );
+            }
 
             return $inserted === 1;
         });

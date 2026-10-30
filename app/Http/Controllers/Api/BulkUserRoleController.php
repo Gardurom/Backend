@@ -52,8 +52,10 @@ class BulkUserRoleController extends Controller
             $validated['user_ids']
         );
 
+        $actorId = (int) $request->user()->getAuthIdentifier();
+
         $result = DB::transaction(
-            function () use ($role, $userIds): array {
+            function () use ($role, $userIds, $actorId): array {
                 $users = User::query()
                     ->whereIn('id', $userIds)
                     ->lockForUpdate()
@@ -90,6 +92,13 @@ class BulkUserRoleController extends Controller
                         ]);
 
                     if ($inserted === 1) {
+                        app(\App\Actions\User\RecordUserRoleActivity::class)->record(
+                            $actorId,
+                            (int) $userId,
+                            (int) $role->id,
+                            (string) $role->code,
+                            true
+                        );
                         $assignedUserIds[] = $userId;
                     } else {
                         $alreadyAssignedUserIds[] = $userId;
