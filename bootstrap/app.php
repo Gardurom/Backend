@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
 
         $middleware->alias([
+            'siga.access' => \App\Http\Middleware\EnsureAccessEligibility::class,
             'siga.permission' => EnsurePermission::class,
             'siga.reauthenticated' => EnsureRecentReauthentication::class,
             'siga.session.absolute' => EnforceAbsoluteSessionTimeout::class,

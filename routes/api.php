@@ -33,12 +33,14 @@ Route::get('/user', function (
 })->middleware([
     'auth:sanctum',
     'siga.session.absolute',
+        'siga.access',
 ]);
 
 Route::get('/user/profiles', [UserProfileController::class, 'index'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
     ]);
 
 Route::put(
@@ -49,12 +51,14 @@ Route::put(
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
     ]);
 
 Route::get('/perfiles', [ProfileController::class, 'index'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:perfiles.ver',
     ]);
 
@@ -62,6 +66,7 @@ Route::get('/roles', [RoleController::class, 'index'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:roles.ver',
     ]);
 
@@ -71,6 +76,7 @@ Route::post(
 )->middleware([
     'auth:sanctum',
     'siga.session.absolute',
+        'siga.access',
     'siga.permission:usuarios.asignar_roles',
     'siga.reauthenticated',
 ]);
@@ -80,6 +86,7 @@ Route::post(
 )->middleware([
     'auth:sanctum',
     'siga.session.absolute',
+        'siga.access',
     'siga.permission:usuarios.retirar_roles_masivamente',
     'siga.reauthenticated',
 ]);
@@ -88,6 +95,7 @@ Route::get('/usuarios/{user}/roles', [UserRoleController::class, 'index'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:usuarios.ver',
     ]);
 Route::delete('/usuarios/{user}/roles/{role}', [UserRoleController::class, 'destroy'])
@@ -96,6 +104,7 @@ Route::delete('/usuarios/{user}/roles/{role}', [UserRoleController::class, 'dest
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:usuarios.asignar_roles',
         'siga.reauthenticated',
     ]);
@@ -105,6 +114,7 @@ Route::post('/usuarios/{user}/roles', [UserRoleController::class, 'store'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:usuarios.asignar_roles',
         'siga.reauthenticated',
     ]);
@@ -113,12 +123,14 @@ Route::get('/usuarios/personas-disponibles', [UserController::class, 'availableP
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:usuarios.crear',
     ]);
 Route::post('/usuarios', [UserController::class, 'store'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:usuarios.crear',
         'siga.reauthenticated',
     ]);
@@ -127,6 +139,7 @@ Route::get('/usuarios', [UserController::class, 'index'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:usuarios.ver',
     ]);
 
@@ -134,12 +147,14 @@ Route::get('/sessions', [SessionController::class, 'index'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
     ]);
 
 Route::delete('/sessions/others', [SessionController::class, 'destroyOthers'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.reauthenticated',
     ]);
 
@@ -148,12 +163,14 @@ Route::delete('/sessions/{session}', [SessionController::class, 'destroy'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.reauthenticated',
     ]);
 Route::post('/personas', [PersonController::class, 'store'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:personas.crear',
     ]);
 
@@ -164,6 +181,7 @@ Route::get(
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:personas.importar',
     ]);
 Route::post(
@@ -173,6 +191,7 @@ Route::post(
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:personas.importar',
     ]);
 Route::post(
@@ -182,6 +201,7 @@ Route::post(
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:personas.importar',
         'siga.reauthenticated',
     ]);
@@ -192,12 +212,14 @@ Route::get(
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:personas.importar',
     ]);
 Route::get('/personas', [PersonController::class, 'index'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:personas.ver',
     ]);
 
@@ -205,6 +227,7 @@ Route::get('/personas/{id_persona}', [PersonController::class, 'show'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:personas.ver',
     ]);
 
@@ -212,6 +235,7 @@ Route::patch('/personas/{id_persona}', [PersonController::class, 'update'])
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:personas.actualizar',
     ]);
 
@@ -219,6 +243,7 @@ Route::post('/personas/{id_persona}/baja', [PersonController::class, 'withdraw']
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:personas.baja',
         'siga.reauthenticated',
     ]);
@@ -227,6 +252,15 @@ Route::post('/personas/{id_persona}/reingreso', [PersonController::class, 'reins
     ->middleware([
         'auth:sanctum',
         'siga.session.absolute',
+        'siga.access',
         'siga.permission:personas.reingreso',
         'siga.reauthenticated',
     ]);
+
+
+Route::post('/usuarios/{user}/habilitar', [\App\Http\Controllers\Api\UserAccessController::class, 'enable'])
+    ->whereNumber('user')
+    ->middleware(['auth:sanctum', 'siga.session.absolute', 'siga.access', 'siga.permission:usuarios.habilitar', 'siga.reauthenticated']);
+Route::post('/usuarios/{user}/deshabilitar', [\App\Http\Controllers\Api\UserAccessController::class, 'disable'])
+    ->whereNumber('user')
+    ->middleware(['auth:sanctum', 'siga.session.absolute', 'siga.access', 'siga.permission:usuarios.deshabilitar', 'siga.reauthenticated']);

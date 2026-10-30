@@ -18,6 +18,7 @@ abstract class FunctionalTestCase extends TestCase
 
     protected function setUp(): void
     {
+        FunctionalExecutionGuard::assertSafeToRun();
         parent::setUp();
 
         try {

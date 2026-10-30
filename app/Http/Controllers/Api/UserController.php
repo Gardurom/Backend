@@ -50,7 +50,8 @@ class UserController extends Controller
         $user = $createUser->execute(
             $validated['id_persona'],
             $validated['email'],
-            $validated['password']
+            $validated['password'],
+            (int) $request->user()->getAuthIdentifier()
         );
 
         return response()->json([
@@ -58,6 +59,7 @@ class UserController extends Controller
             'id_persona' => $user->id_persona,
             'name' => $user->name,
             'email' => $user->email,
+            'access_status' => $user->access_status,
         ], 201);
     }
 
@@ -89,6 +91,7 @@ class UserController extends Controller
                 'estatus',
             ])
             ->whereDoesntHave('user')
+            ->where('estatus', 'ACTIVO')
             ->when($persona !== '', function ($query) use ($persona) {
                 $query->whereRaw(
                     "concat_ws(' ', nombres, apellido_paterno, apellido_materno) ILIKE ?",
@@ -217,6 +220,7 @@ class UserController extends Controller
                 'name',
                 'email',
                 'created_at',
+                'access_status',
             ])
             ->with([
                 'person:id_persona,nombres,apellido_paterno,apellido_materno',

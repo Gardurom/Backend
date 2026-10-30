@@ -54,7 +54,13 @@ class AuthenticatedSessionController extends Controller
             );
         }
 
-        if (! Auth::attempt($credentials)) {
+        if (! Auth::attempt($credentials)
+            || ! app(\App\Access\AccessEligibility::class)->allows($request->user())) {
+            if (Auth::check()) {
+                Auth::guard('web')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
             RateLimiter::hit(
                 $throttleKey,
                 self::LOGIN_DECAY_SECONDS
@@ -68,6 +74,7 @@ class AuthenticatedSessionController extends Controller
         RateLimiter::clear($throttleKey);
 
         $request->session()->regenerate();
+        $request->session()->put('siga_access_version', (string) $request->user()->access_version);
 
         $authenticatedAt = now()->timestamp;
 

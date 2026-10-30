@@ -18,5 +18,6 @@ Route::post('/reauthenticate', [AuthenticatedSessionController::class, 'reauthen
     ->middleware([
         'auth',
         'siga.session.absolute',
+        'siga.access',
     ])
     ->name('reauthenticate');

@@ -17,7 +17,9 @@ class WithdrawPerson
     ): Person {
         return DB::connection()->transaction(
             function () use ($userId, $personId): Person {
-                $person = Person::query()->findOrFail($personId);
+                DB::select('SELECT pg_advisory_xact_lock(73421, 101)');
+                DB::select("SELECT set_config('siga.actor_id', ?, true)", [(string) $userId]);
+                $person = Person::query()->lockForUpdate()->findOrFail($personId);
 
                 if ($person->estatus === 'BAJA') {
                     return $person;

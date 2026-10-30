@@ -14,6 +14,7 @@ abstract class HttpFunctionalTestCase extends TestCase
 
     protected function setUp(): void
     {
+        FunctionalExecutionGuard::assertSafeToRun();
         parent::setUp();
 
         self::assertSame(
