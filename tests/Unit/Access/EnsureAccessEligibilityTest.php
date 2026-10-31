@@ -146,6 +146,53 @@ final class EnsureAccessEligibilityTest extends TestCase
         self::assertSame('OK', $response->getContent());
     }
 
+    public function test_inactive_person_revokes_existing_session(): void
+    {
+        [$request, $session] = $this->request(
+            'HABILITADO',
+            'INACTIVO',
+            '9',
+            '9'
+        );
+
+        $this->expectLogout();
+
+        $response = (new EnsureAccessEligibility())->handle(
+            $request,
+            fn () => new Response('NO_DEBE_CONTINUAR', 200)
+        );
+
+        self::assertSame(401, $response->getStatusCode());
+        self::assertSame(
+            'ACCESS_REVOKED',
+            $response->getData(true)['code']
+        );
+        self::assertNull($session->get('siga_access_version'));
+    }
+
+    public function test_withdrawn_person_revokes_existing_session(): void
+    {
+        [$request, $session] = $this->request(
+            'HABILITADO',
+            'BAJA',
+            '9',
+            '9'
+        );
+
+        $this->expectLogout();
+
+        $response = (new EnsureAccessEligibility())->handle(
+            $request,
+            fn () => new Response('NO_DEBE_CONTINUAR', 200)
+        );
+
+        self::assertSame(401, $response->getStatusCode());
+        self::assertSame(
+            'ACCESS_REVOKED',
+            $response->getData(true)['code']
+        );
+        self::assertNull($session->get('siga_access_version'));
+    }
     private function request(
         string $status,
         ?string $personStatus,
