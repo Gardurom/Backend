@@ -42,4 +42,47 @@ final class AdminUserProfileController extends Controller
             'data' => $profiles,
         ]);
     }
+
+    public function store(
+        \Illuminate\Http\Request $request,
+        int $user,
+        \App\Actions\User\ManageUserProfiles $manager
+    ): JsonResponse {
+        $validated = $request->validate([
+            'profile_id' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $profileId = (int) $validated['profile_id'];
+
+        $assigned = $manager->assign(
+            $user,
+            $profileId,
+            (int) $request->user()->getAuthIdentifier()
+        );
+
+        return response()->json([
+            'user_id' => $user,
+            'profile_id' => $profileId,
+            'assigned' => $assigned,
+        ], $assigned ? 201 : 200);
+    }
+
+    public function destroy(
+        \Illuminate\Http\Request $request,
+        int $user,
+        int $profile,
+        \App\Actions\User\ManageUserProfiles $manager
+    ): JsonResponse {
+        $removed = $manager->remove(
+            $user,
+            $profile,
+            (int) $request->user()->getAuthIdentifier()
+        );
+
+        return response()->json([
+            'user_id' => $user,
+            'profile_id' => $profile,
+            'removed' => $removed,
+        ]);
+    }
 }

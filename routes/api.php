@@ -336,3 +336,26 @@ Route::get(
     'siga.permission:usuarios.ver',
     'siga.permission:perfiles.ver',
 ]);
+
+// Administración de perfiles: autorización independiente de roles.
+Route::post(
+    '/usuarios/{user}/perfiles',
+    [\App\Http\Controllers\Api\AdminUserProfileController::class, 'store']
+)->whereNumber('user')->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.access',
+    'siga.permission:usuarios.asignar_perfiles',
+    'siga.reauthenticated',
+]);
+
+Route::delete(
+    '/usuarios/{user}/perfiles/{profile}',
+    [\App\Http\Controllers\Api\AdminUserProfileController::class, 'destroy']
+)->whereNumber('user')->whereNumber('profile')->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.access',
+    'siga.permission:usuarios.asignar_perfiles',
+    'siga.reauthenticated',
+]);
