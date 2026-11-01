@@ -10,6 +10,7 @@ use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Response;
@@ -202,6 +203,7 @@ final class EnsureAccessEligibilityTest extends TestCase
         $user = Mockery::mock(User::class)->makePartial();
 
         $user->setRawAttributes([
+            'id' => 1,
             'access_status' => $status,
             'access_version' => $currentVersion,
             'id_persona' => $personStatus === null
@@ -230,6 +232,38 @@ final class EnsureAccessEligibilityTest extends TestCase
             $user->shouldReceive('person')
                 ->once()
                 ->andReturn($relation);
+        }
+
+        // La elegibilidad consulta las restricciones del usuario.
+        // Esta prueba es unitaria y no utiliza la base institucional.
+        if ($status === 'HABILITADO' && $personStatus === 'ACTIVO') {
+            $query = Mockery::mock();
+
+            $query->shouldReceive('where')
+                ->once()
+                ->with('id', 1)
+                ->andReturnSelf();
+
+            $query->shouldReceive('first')
+                ->once()
+                ->andReturn((object) [
+                    'access_security_blocked' => false,
+                    'access_suspended_until' => null,
+                    'access_valid_from' => null,
+                    'access_valid_until' => null,
+                ]);
+
+            // El contenedor de esta prueba es aislado:
+            // registrar el servicio db antes de utilizar la fachada.
+            $database = Mockery::mock();
+
+            $database->shouldReceive('table')
+                ->once()
+                ->with('system.users')
+                ->andReturn($query);
+
+            Container::getInstance()->instance('db', $database);
+            Facade::clearResolvedInstance('db');
         }
 
         $session = new Store(
