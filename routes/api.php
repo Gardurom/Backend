@@ -287,3 +287,37 @@ Route::put(
     'siga.permission:usuarios.deshabilitar',
     'siga.reauthenticated',
 ]);
+
+/*
+ * SIGA: catalogos administrativos de acceso.
+ * Las autorizaciones se verifican exclusivamente en Laravel.
+ */
+Route::get(
+    '/permisos',
+    [\App\Http\Controllers\Api\AccessCatalogController::class, 'permissions']
+)->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.access',
+    'siga.permission:roles.ver',
+]);
+
+Route::get(
+    '/roles/{role}/permisos',
+    [\App\Http\Controllers\Api\AccessCatalogController::class, 'rolePermissions']
+)->whereNumber('role')->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.access',
+    'siga.permission:roles.ver',
+]);
+
+Route::get(
+    '/perfiles/grupos',
+    [\App\Http\Controllers\Api\AccessCatalogController::class, 'profileGroups']
+)->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.access',
+    'siga.permission:perfiles.ver',
+]);
