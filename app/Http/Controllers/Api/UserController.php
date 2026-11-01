@@ -207,6 +207,21 @@ class UserController extends Controller
                 'min:1',
                 Rule::exists('pgsql.system.roles', 'id'),
             ],
+            'access_status' => [
+                'sometimes',
+                'required',
+                Rule::in(['PENDIENTE', 'HABILITADO', 'DESHABILITADO']),
+            ],
+            'restriction' => [
+                'sometimes',
+                'required',
+                Rule::in([
+                    'blocked',
+                    'suspended',
+                    'validity_future',
+                    'validity_expired',
+                ]),
+            ],
         ]);
 
         $roleId = isset($validated['role_id'])
@@ -237,6 +252,37 @@ class UserController extends Controller
             $query->whereHas('roles', function ($roles) use ($roleId): void {
                 $roles->where('system.roles.id', $roleId);
             });
+        }
+
+        if (isset($validated['access_status'])) {
+            $query->where(
+                'access_status',
+                $validated['access_status']
+            );
+        }
+
+        if (isset($validated['restriction'])) {
+            switch ($validated['restriction']) {
+                case 'blocked':
+                    $query->where('access_security_blocked', true);
+                    break;
+
+                case 'suspended':
+                    $query->where(
+                        'access_suspended_until',
+                        '>',
+                        now()
+                    );
+                    break;
+
+                case 'validity_future':
+                    $query->where('access_valid_from', '>', now());
+                    break;
+
+                case 'validity_expired':
+                    $query->where('access_valid_until', '<=', now());
+                    break;
+            }
         }
 
         $users = $query->paginate(20);
