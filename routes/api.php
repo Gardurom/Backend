@@ -264,3 +264,26 @@ Route::post('/usuarios/{user}/habilitar', [\App\Http\Controllers\Api\UserAccessC
 Route::post('/usuarios/{user}/deshabilitar', [\App\Http\Controllers\Api\UserAccessController::class, 'disable'])
     ->whereNumber('user')
     ->middleware(['auth:sanctum', 'siga.session.absolute', 'siga.access', 'siga.permission:usuarios.deshabilitar', 'siga.reauthenticated']);
+
+// SIGA_F2_RESTRICCIONES_ACCESO
+Route::get(
+    '/usuarios/{user}/restricciones',
+    [\App\Http\Controllers\Api\UserAccessRestrictionsController::class, 'show']
+)->whereNumber('user')->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.access',
+    'siga.permission:usuarios.ver',
+]);
+
+Route::put(
+    '/usuarios/{user}/restricciones',
+    [\App\Http\Controllers\Api\UserAccessRestrictionsController::class, 'update']
+)->whereNumber('user')->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.access',
+    'siga.permission:usuarios.habilitar',
+    'siga.permission:usuarios.deshabilitar',
+    'siga.reauthenticated',
+]);
