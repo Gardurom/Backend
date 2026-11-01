@@ -3,7 +3,7 @@
 **Versión:** 0.1 · **Fecha:** 23/10/2026 · **Estado:** PROPUESTA
 **Responsables por definir:** autoridad institucional de seguridad, administradores funcionales y responsables técnicos.
 
-> Las reglas aquí descritas constituyen una propuesta. No modifican ni certifican el comportamiento actual de SIGA. Deben contrastarse con su modelo de datos y servicios antes de aprobar o implementar.
+> POL-03 cuenta con aprobación operativa para el proyecto SIGA, sujeta a ratificación institucional formal. Las demás políticas permanecen como propuestas salvo aprobación expresa. La documentación no sustituye pruebas ni certificación de producción.
 
 ## POL-01 — Identidad institucional
 
@@ -23,11 +23,33 @@
 
 ## POL-03 — Ciclo de vida del Usuario
 
-**Objetivo:** gobernar creación, habilitación, suspensión, reactivación y desactivación de cuentas.
+**Estado:** APROBADA PARA OPERACIÓN DEL PROYECTO SIGA, con reservas de certificación.
+**Versión:** 1.0 · **Fecha de aprobación operativa:** 01/11/2026.
+**Alcance:** control de acceso de Personas y Usuarios actualmente implementado.
+**Aprobación institucional formal:** pendiente de identificación y ratificación por la autoridad competente.
 
-**Reglas propuestas:** cada transición estará autorizada, será trazable y no eliminará el expediente de la Persona. La suspensión/desactivación impedirá nuevo acceso y deberá invalidar sesiones vigentes cuando la medida requiera efecto inmediato. Reactivar no implicará recuperar automáticamente roles anteriores.
+**Objetivo:** garantizar que únicamente las cuentas institucionalmente elegibles puedan autenticarse y operar.
 
-**Pendiente:** validar estados, transiciones y mecanismos de revocación soportados por el backend actual.
+### Reglas aprobadas para SIGA
+
+1. Toda cuenta humana interactiva requiere una Persona vinculada con estado ACTIVO.
+2. El acceso exige que el Usuario esté HABILITADO; PENDIENTE o DESHABILITADO impiden el acceso.
+3. La baja o inactivación de Persona impide la autenticación y el uso de sesiones anteriores.
+4. La deshabilitación de Usuario revoca sus sesiones y conserva su identidad, historial y roles para trazabilidad.
+5. El reingreso de Persona no habilita automáticamente la cuenta. La habilitación debe ser expresa y requiere revisión de roles.
+6. Los bloqueos de seguridad, suspensiones temporales y periodos de vigencia administrativa se aplican mediante los controles existentes, con evaluación en backend.
+7. Las operaciones administrativas sensibles requieren permisos efectivos y reautenticación reciente.
+8. Los perfiles no conceden permisos. La autorización efectiva se resuelve en Laravel, respetando DENY sobre ALLOW.
+9. Los cambios de acceso deben conservar su registro de auditoría.
+10. No se permite dejar SIGA sin un administrador habilitado.
+
+### Límites y reservas
+
+- No se aprueban plazos arbitrarios de suspensión ni nuevas excepciones de cuentas técnicas.
+- La autoridad institucional deberá ratificar responsables, causas de bloqueo, periodos de conservación y procedimientos de recuperación.
+- Las pruebas unitarias y de navegador no sustituyen las certificaciones transaccionales pendientes de H1, H2 y H5.
+- La relación académica o laboral con vigencia pertenece a H4 y no se considera implementada por esta política.
+- La presente aprobación operativa no equivale a certificación de producción ni aprobación normativa institucional formal.
 
 ## POL-04 — Asignación y revocación de roles
 
@@ -91,7 +113,7 @@
 |---|---|---|---|
 | POL-01 | Propuesta | Por verificar | Por identificar |
 | POL-02 | Propuesta | Por verificar | Por identificar |
-| POL-03 | Propuesta | Por verificar | Por identificar |
+| POL-03 | Aprobada para operación SIGA; ratificación institucional pendiente | Controles de acceso implementados | 130 pruebas unitarias; T19/T20; F5.1–F5.10 con reservas |
 | POL-04 | Propuesta | Por verificar | Por identificar |
 | POL-05 | Propuesta | Por verificar | Por identificar |
 | POL-06 | Propuesta | Por verificar | Por identificar |
