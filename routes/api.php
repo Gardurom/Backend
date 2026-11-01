@@ -321,3 +321,18 @@ Route::get(
     'siga.access',
     'siga.permission:perfiles.ver',
 ]);
+
+/*
+ * Consulta administrativa de perfiles.
+ * El perfil nunca interviene en la autorización efectiva.
+ */
+Route::get(
+    '/usuarios/{user}/perfiles',
+    [\App\Http\Controllers\Api\AdminUserProfileController::class, 'index']
+)->whereNumber('user')->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.access',
+    'siga.permission:usuarios.ver',
+    'siga.permission:perfiles.ver',
+]);
