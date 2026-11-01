@@ -221,6 +221,11 @@ class UserController extends Controller
                 'email',
                 'created_at',
                 'access_status',
+                'access_version',
+                'access_security_blocked',
+                'access_suspended_until',
+                'access_valid_from',
+                'access_valid_until',
             ])
             ->with([
                 'person:id_persona,nombres,apellido_paterno,apellido_materno',
