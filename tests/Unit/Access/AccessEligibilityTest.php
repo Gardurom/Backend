@@ -4,15 +4,34 @@ namespace Tests\Unit\Access;
 
 use App\Access\AccessEligibility;
 use App\Models\User;
+use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Facade;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 
 final class AccessEligibilityTest extends TestCase
 {
+    private Container $previousContainer;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->previousContainer = Container::getInstance();
+        $container = new Container();
+
+        Container::setInstance($container);
+        Facade::setFacadeApplication($container);
+        Facade::clearResolvedInstances();
+    }
+
     protected function tearDown(): void
     {
         Mockery::close();
+        Facade::clearResolvedInstances();
+        Facade::setFacadeApplication($this->previousContainer);
+        Container::setInstance($this->previousContainer);
 
         parent::tearDown();
     }
@@ -20,6 +39,23 @@ final class AccessEligibilityTest extends TestCase
     public function test_enabled_user_with_active_person_is_eligible(): void
     {
         $user = $this->user('HABILITADO', 'ACTIVO');
+
+        $query = Mockery::mock(\stdClass::class);
+        $query->shouldReceive('where')->once()->andReturnSelf();
+        $query->shouldReceive('first')->once()->andReturn((object) [
+            'access_security_blocked' => false,
+            'access_suspended_until' => null,
+            'access_valid_from' => null,
+            'access_valid_until' => null,
+        ]);
+
+        $database = Mockery::mock(\stdClass::class);
+        $database->shouldReceive('table')
+            ->once()
+            ->with('system.users')
+            ->andReturn($query);
+
+        Container::getInstance()->instance('db', $database);
 
         self::assertTrue((new AccessEligibility())->allows($user));
     }

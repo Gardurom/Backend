@@ -34,6 +34,23 @@ final class LastEnabledAdminResponseTest extends TestCase
         $responses->shouldReceive('json')->zeroOrMoreTimes()
             ->andReturnUsing(fn ($data, $status = 200) => new JsonResponse($data, $status));
         $container->instance(ResponseFactory::class, $responses);
+
+        $query = Mockery::mock(\stdClass::class);
+        $query->shouldReceive('where')->once()->andReturnSelf();
+        $query->shouldReceive('first')->once()->andReturn((object) [
+            'access_security_blocked' => false,
+            'access_suspended_until' => null,
+            'access_valid_from' => null,
+            'access_valid_until' => null,
+        ]);
+
+        $database = Mockery::mock(\stdClass::class);
+        $database->shouldReceive('table')
+            ->once()
+            ->with('system.users')
+            ->andReturn($query);
+
+        $container->instance('db', $database);
     }
 
     protected function tearDown(): void
