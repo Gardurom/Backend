@@ -359,3 +359,15 @@ Route::delete(
     'siga.permission:usuarios.asignar_perfiles',
     'siga.reauthenticated',
 ]);
+// SIGA: alternar ALLOW/DENY de una regla de rol.
+// Esta ruta no crea permisos ni concede privilegios por sí misma.
+Route::patch(
+    '/roles/{role}/permisos/{permission}',
+    [\App\Http\Controllers\Api\RolePermissionEffectController::class, 'update']
+)->whereNumber('role')->whereNumber('permission')->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.access',
+    'siga.permission:roles.administrar_permisos',
+    'siga.reauthenticated',
+]);
