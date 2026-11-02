@@ -371,3 +371,14 @@ Route::patch(
     'siga.permission:roles.administrar_permisos',
     'siga.reauthenticated',
 ]);
+// Cambio conjunto de efectos de un rol en una sola transacción.
+Route::patch(
+    '/roles/{role}/permisos/lote',
+    [\App\Http\Controllers\Api\RolePermissionBatchController::class, 'update']
+)->whereNumber('role')->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.access',
+    'siga.permission:roles.administrar_permisos',
+    'siga.reauthenticated',
+]);
