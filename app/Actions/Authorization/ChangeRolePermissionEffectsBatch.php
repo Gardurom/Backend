@@ -12,7 +12,11 @@ final class ChangeRolePermissionEffectsBatch
         int $actorId,
         array $changes
     ): array {
-        $result = DB::selectOne(
+        $connection = config('database.siga_permissions_enabled', false)
+            ? 'siga_permissions'
+            : config('database.default');
+
+        $result = DB::connection($connection)->selectOne(
             'SELECT system.apply_role_permission_changes(
                 CAST(? AS bigint),
                 CAST(? AS bigint),

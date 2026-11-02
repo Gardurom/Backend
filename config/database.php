@@ -19,6 +19,8 @@ return [
 
     'default' => env('DB_CONNECTION', 'pgsql'),
 
+    'siga_permissions_enabled' => env('SIGA_PERMISSIONS_ENABLED', false),
+
     /*
     |--------------------------------------------------------------------------
     | Database Connections
@@ -32,6 +34,21 @@ return [
 
     'connections' => [
 
+
+        'siga_permissions' => [
+            'driver' => 'pgsql',
+            'host' => env('SIGA_PERMISSIONS_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('SIGA_PERMISSIONS_DB_PORT', env('DB_PORT', '5432')),
+            'database' => env('SIGA_PERMISSIONS_DB_DATABASE', 'siga'),
+            'username' => env('SIGA_PERMISSIONS_DB_USERNAME', ''),
+            'password' => env('SIGA_PERMISSIONS_DB_PASSWORD', ''),
+            'charset' => 'utf8',
+            'timezone' => 'UTC',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+        ],
 
         'mysql' => [
             'driver' => 'mysql',
