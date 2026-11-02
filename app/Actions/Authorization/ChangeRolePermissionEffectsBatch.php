@@ -12,7 +12,26 @@ final class ChangeRolePermissionEffectsBatch
         int $actorId,
         array $changes
     ): array {
-        $connection = config('database.siga_permissions_enabled', false)
+        $enabled = config('database.siga_permissions_enabled', false);
+
+        if ($enabled) {
+            $settings = config('database.connections.siga_permissions', []);
+
+            if (
+                !is_array($settings)
+                || ($settings['driver'] ?? null) !== 'pgsql'
+                || ($settings['database'] ?? null) !== 'siga'
+                || ($settings['username'] ?? null) !== 'siga_permission_executor'
+                || !is_string($settings['password'] ?? null)
+                || $settings['password'] === ''
+            ) {
+                throw new \RuntimeException(
+                    'La conexion administrativa de permisos no esta configurada de forma segura.'
+                );
+            }
+        }
+
+        $connection = $enabled
             ? 'siga_permissions'
             : config('database.default');
 
