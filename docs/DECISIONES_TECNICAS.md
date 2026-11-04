@@ -1,6 +1,6 @@
 # SIGA — Decisiones técnicas y funcionales
 
-Última actualización: 2026-10-09
+Última actualización: 2026-11-04
 
 ## 1. Propósito
 
@@ -376,3 +376,8 @@ Tecnologías vigentes de esta decisión:
 - Frontend: Angular 22.2.2;
 - interfaz y estilos: Tailwind CSS 4.3.3;
 - cartografía: Leaflet, con integración funcional pendiente.
+
+
+## Acuerdos académicos aprobados el 2026-11-04
+
+**Estado: PLANIFICADA.** La consolidación vigente se encuentra en [ACADEMICO.md](ACADEMICO.md). Incluye P01–P24 y G/F/D/A/R con precisiones A06, A12, D06, R03, P20; M01–M09; C01–C03; E01–E03 y S01. Separa resultados automáticos de ratificación, conserva matrículas históricas y mantiene Persona como identidad y Usuario como acceso. La matrícula no autentica. Los acuerdos no otorgan permisos ni certifican implementación. Los contratos, campos físicos y evidencias deberán conciliarse antes de programar. Los checkpoints históricos permanecen sin modificación.

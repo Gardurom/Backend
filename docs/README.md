@@ -1,6 +1,6 @@
 # SIGA — Documentación técnica
 
-Última actualización: 2026-10-09
+Última actualización: 2026-11-04
 
 ## 1. Propósito
 
@@ -161,3 +161,8 @@ No documentar trabajo local como terminado.
 5. `PRUEBAS_Y_CALIDAD.md`
 6. checkpoint relacionado
 7. `HISTORIAL_IMPLEMENTACION.md`
+
+
+## Acuerdos académicos y matrículas
+
+[ACADEMICO.md](ACADEMICO.md) documenta los acuerdos académicos, matrículas, expedientes, relación Persona–Usuario, ratificación y ámbitos aprobados. Estado funcional aprobado; implementación pendiente de acreditar. No equivale a funcionalidad terminada ni a documentación ya visible en la interfaz.
