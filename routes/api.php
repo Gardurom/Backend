@@ -382,3 +382,6 @@ Route::patch(
     'siga.permission:roles.administrar_permisos',
     'siga.reauthenticated',
 ]);
+
+// SIGA_ACADEMIC_REGISTRY
+require __DIR__.'/academic.php';
