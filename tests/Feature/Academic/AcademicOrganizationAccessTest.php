@@ -28,4 +28,34 @@ final class AcademicOrganizationAccessTest extends TestCase
             ],
         ];
     }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('registrationEndpoints')]
+    public function test_unauthenticated_registration_is_rejected(
+        string $uri,
+        array $payload
+    ): void {
+        $this->postJson($uri, $payload)->assertUnauthorized();
+    }
+
+    public static function registrationEndpoints(): array
+    {
+        return [
+            'programas POST' => [
+                '/api/academico/programas',
+                [
+                    'codigo' => 'VALIDACION',
+                    'nombre' => 'Validacion de acceso',
+                ],
+            ],
+            'cohortes POST' => [
+                '/api/academico/cohortes',
+                [
+                    'id_programa' => '00000000-0000-4000-8000-000000000001',
+                    'tipo' => 'G',
+                    'numero' => 1,
+                    'anio' => 2026,
+                ],
+            ],
+        ];
+    }
 }
