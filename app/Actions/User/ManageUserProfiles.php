@@ -63,7 +63,11 @@ final class ManageUserProfiles
                 return false;
             }
 
-            if ((bool) $assignment->is_default) {
+            $assignedCount = DB::table('system.user_profiles')
+                ->where('user_id', $userId)
+                ->count();
+
+            if ((bool) $assignment->is_default && $assignedCount > 1) {
                 throw ValidationException::withMessages([
                     'profile_id' => [
                         'Selecciona primero otro perfil predeterminado antes de retirar este.',
@@ -81,7 +85,7 @@ final class ManageUserProfiles
                 $userId,
                 $profileId,
                 (string) $profile->code,
-                ['asignado' => true, 'predeterminado' => false],
+                ['asignado' => true, 'predeterminado' => (bool) $assignment->is_default],
                 null
             );
 
