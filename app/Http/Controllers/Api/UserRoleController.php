@@ -34,6 +34,9 @@ class UserRoleController extends Controller
 
         return response()->json([
             'data' => $roles,
+            'meta' => [
+                'total_roles' => DB::table('system.roles')->count(),
+            ],
         ]);
     }
     public function destroy(
