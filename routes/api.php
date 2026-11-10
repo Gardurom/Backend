@@ -105,7 +105,7 @@ Route::delete('/usuarios/{user}/roles/{role}', [UserRoleController::class, 'dest
         'auth:sanctum',
         'siga.session.absolute',
         'siga.access',
-        'siga.permission:usuarios.asignar_roles',
+        'siga.permission:usuarios.retirar_roles',
         'siga.reauthenticated',
     ]);
 
