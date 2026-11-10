@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AcademicRegistryController;
 use App\Http\Controllers\Api\AcademicOrganizationController;
 use App\Http\Controllers\Api\AcademicOrganizationRegistrationController;
 use App\Http\Controllers\Api\AcademicSitesGroupsRegistrationController;
+use App\Http\Controllers\Api\AcademicSiteAssignmentController;
 use Illuminate\Support\Facades\Route;
 
 // Registro administrativo maestro.
@@ -55,6 +56,19 @@ Route::prefix('academico')->middleware([
 
             Route::post('/grupos', [
                 AcademicSitesGroupsRegistrationController::class,
+                'storeGroup',
+            ]);
+        });
+
+    Route::middleware('siga.permission:academico.organizacion.trasladar')
+        ->group(function () {
+            Route::post('/cohortes/adscripciones', [
+                AcademicSiteAssignmentController::class,
+                'storeCohort',
+            ]);
+
+            Route::post('/grupos/adscripciones', [
+                AcademicSiteAssignmentController::class,
                 'storeGroup',
             ]);
         });
