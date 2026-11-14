@@ -66,6 +66,239 @@ final class PersonImportController extends Controller
         Request $request,
         CreateAndValidatePersonImportBatch $createAndValidate
     ): JsonResponse {
+        // SIGA_PERSONAS_PREVIEW_ENDPOINT_V1
+        // Consulta previa: prohibido crear lotes o Personas.
+        if ($request->input('modo') === 'PREVISUALIZAR') {
+            $input = $request->validate([
+                'archivo' => [
+                    'required', 'file', 'extensions:xlsx',
+                    'mimes:xlsx', 'max:5120',
+                ],
+                'modo' => ['required', 'in:PREVISUALIZAR'],
+                'confirmacion' => ['prohibited'],
+            ]);
+
+            abort_unless($request->user() !== null, 401);
+
+            $filePath = $input['archivo']->getRealPath();
+
+            if (!is_string($filePath) || !is_file($filePath)) {
+                throw ValidationException::withMessages([
+                    'archivo' => 'No fue posible leer el archivo Excel.',
+                ]);
+            }
+
+            return \Illuminate\Support\Facades\DB::connection()
+                ->transaction(function () use (
+                    $filePath,
+                    $createAndValidate
+                ): JsonResponse {
+                    $db = \Illuminate\Support\Facades\DB::connection();
+                    $db->statement('SET TRANSACTION READ ONLY');
+
+                    $database = $db->selectOne(
+                        'SELECT current_database() AS nombre'
+                    );
+
+                    if (($database->nombre ?? null) !== 'siga') {
+                        throw new \RuntimeException(
+                            'La previsualizacion requiere la base siga.'
+                        );
+                    }
+
+                    $pipeline = app(
+                        \App\Importing\Personas\PersonImportRowValidationPipeline::class
+                    );
+
+                    $rows = [];
+                    $frequencies = [
+                        'rfc' => [],
+                        'curp' => [],
+                        'correo_institucional' => [],
+                    ];
+
+                    $total = 0;
+
+                    try {
+                        foreach (
+                            $createAndValidate->previewSourceRows($filePath)
+                            as $source
+                        ) {
+                            if (++$total > 5000) {
+                                throw ValidationException::withMessages([
+                                    'archivo' => 'El archivo supera 5000 filas.',
+                                ]);
+                            }
+
+                            $validated = $pipeline->validate(
+                                $source->rawData
+                            );
+
+                            $normalized = $validated->normalizedData;
+
+                            $identifiers = [];
+
+                            foreach (
+                                array_keys($frequencies) as $field
+                            ) {
+                                $value = trim(
+                                    (string) ($normalized[$field] ?? '')
+                                );
+
+                                $identifiers[$field] = $value;
+
+                                if ($value !== '') {
+                                    $frequencies[$field][$value] =
+                                        ($frequencies[$field][$value] ?? 0) + 1;
+                                }
+                            }
+
+                            $rows[] = [
+                                'fila_excel' => $source->rowNumber,
+                                'valid' => $validated->isValid(),
+                                'error_fields' => array_keys(
+                                    $validated->errors
+                                ),
+                                'identifiers' => $identifiers,
+                            ];
+                        }
+                    } catch (
+                        \App\Importing\InvalidXlsxImportSource|
+                        \App\Importing\Personas\InvalidPersonImportTemplate
+                        $error
+                    ) {
+                        throw ValidationException::withMessages([
+                            'archivo' => $error->getMessage(),
+                        ]);
+                    }
+
+                    if ($total === 0) {
+                        throw ValidationException::withMessages([
+                            'archivo' => 'El Excel no contiene Personas.',
+                        ]);
+                    }
+
+                    // Consultas agrupadas, evitando una consulta por fila.
+                    $existing = [
+                        'rfc' => [],
+                        'curp' => [],
+                        'correo_institucional' => [],
+                    ];
+
+                    foreach ($frequencies as $field => $values) {
+                        foreach (
+                            array_chunk(array_keys($values), 300)
+                            as $chunk
+                        ) {
+                            if ($field === 'correo_institucional') {
+                                $matches = $db->table(
+                                    'institutional.persons'
+                                )
+                                    ->selectRaw(
+                                        'lower(correo_institucional) AS valor'
+                                    )
+                                    ->whereIn(
+                                        \Illuminate\Support\Facades\DB::raw(
+                                            'lower(correo_institucional)'
+                                        ),
+                                        $chunk
+                                    )
+                                    ->get()
+                                    ->pluck('valor');
+                            } else {
+                                $matches = $db->table(
+                                    'institutional.persons'
+                                )
+                                    ->whereIn($field, $chunk)
+                                    ->pluck($field);
+                            }
+
+                            foreach ($matches as $value) {
+                                $existing[$field][trim((string) $value)] = true;
+                            }
+                        }
+                    }
+
+                    $counts = [
+                        'total' => $total,
+                        'validas' => 0,
+                        'invalidas' => 0,
+                        'candidatas_nuevas' => 0,
+                        'existentes_por_identificador' => 0,
+                        'duplicadas_en_excel' => 0,
+                        'sin_rfc_ni_curp' => 0,
+                    ];
+
+                    $publicRows = [];
+
+                    foreach ($rows as $row) {
+                        if (!$row['valid']) {
+                            $status = 'INVALIDA';
+                            $counts['invalidas']++;
+                        } else {
+                            $counts['validas']++;
+
+                            $ids = $row['identifiers'];
+
+                            $duplicate = false;
+                            $foundExisting = false;
+
+                            foreach ($ids as $field => $value) {
+                                if ($value === '') {
+                                    continue;
+                                }
+
+                                if (
+                                    ($frequencies[$field][$value] ?? 0) > 1
+                                ) {
+                                    $duplicate = true;
+                                }
+
+                                if (
+                                    isset($existing[$field][$value])
+                                ) {
+                                    $foundExisting = true;
+                                }
+                            }
+
+                            if (
+                                $ids['rfc'] === '' &&
+                                $ids['curp'] === ''
+                            ) {
+                                $status = 'SIN_RFC_NI_CURP';
+                                $counts['sin_rfc_ni_curp']++;
+                            } elseif ($duplicate) {
+                                $status = 'DUPLICADA_EN_EXCEL';
+                                $counts['duplicadas_en_excel']++;
+                            } elseif ($foundExisting) {
+                                $status = 'REVISAR_PERSONA_EXISTENTE';
+                                $counts['existentes_por_identificador']++;
+                            } else {
+                                $status = 'CANDIDATA_NUEVA';
+                                $counts['candidatas_nuevas']++;
+                            }
+                        }
+
+                        // No se exponen RFC, CURP, correos ni nombres.
+                        $publicRows[] = [
+                            'fila_excel' => $row['fila_excel'],
+                            'estado' => $status,
+                            'campos_con_error' => $row['error_fields'],
+                        ];
+                    }
+
+                    return response()->json([
+                        'data' => [
+                            'estado' => 'PERSONAS_PREVISUALIZADAS',
+                            'resumen' => $counts,
+                            'filas' => $publicRows,
+                            'persistido' => false,
+                            'confirmacion_habilitada' => false,
+                        ],
+                    ]);
+                });
+        }
+
         $validated =
             $request->validate([
                 'archivo' => [

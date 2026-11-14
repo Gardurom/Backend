@@ -17,7 +17,8 @@ class XlsxImportSourceReader
      * @return Generator<int, ImportSourceRow>
      */
     public function read(
-        string $filePath
+        string $filePath,
+        ?array $selectedHeaders = null
     ): Generator {
         if (
             ! is_file($filePath)
@@ -58,7 +59,8 @@ class XlsxImportSourceReader
                     if ($headers === null) {
                         $headers =
                             $this->normalizeHeaders(
-                                $values
+                                $values,
+                                $selectedHeaders
                             );
 
                         continue;
@@ -72,24 +74,17 @@ class XlsxImportSourceReader
                         continue;
                     }
 
-                    $headerWidth = count(
-                        $headers
-                    );
+                    if ($selectedHeaders === null) {
+                        $headerWidth = count($headers);
+                        $extraValues = array_slice($values, $headerWidth);
 
-                    $extraValues = array_slice(
-                        $values,
-                        $headerWidth
-                    );
-
-                    if (
-                        ! $this->isEmptyRow(
-                            $extraValues
-                        )
-                    ) {
-                        throw new InvalidXlsxImportSource(
-                            'Los datos XLSX exceden las columnas declaradas.'
-                        );
+                        if (! $this->isEmptyRow($extraValues)) {
+                            throw new InvalidXlsxImportSource(
+                                'Los datos XLSX exceden las columnas declaradas.'
+                            );
+                        }
                     }
+
                     $rawData = [];
 
                     foreach (
@@ -100,6 +95,13 @@ class XlsxImportSourceReader
                                 $values[$index]
                                     ?? null
                             );
+                    }
+
+                    if (
+                        $selectedHeaders !== null &&
+                        $this->isEmptyRow(array_values($rawData))
+                    ) {
+                        continue;
                     }
 
                     yield new ImportSourceRow(
@@ -151,8 +153,57 @@ class XlsxImportSourceReader
      * @return list<string>
      */
     private function normalizeHeaders(
-        array $values
+        array $values,
+        ?array $selectedHeaders = null
     ): array {
+        if ($selectedHeaders !== null) {
+            if ($selectedHeaders === []) {
+                throw new InvalidXlsxImportSource(
+                    'No se indicaron columnas institucionales.'
+                );
+            }
+
+            $available = [];
+
+            foreach ($values as $index => $value) {
+                if (! is_string($value) || trim($value) === '') {
+                    continue;
+                }
+
+                $key = mb_strtoupper(trim(
+                    preg_replace('/\s+/u', ' ', $value) ?? $value
+                ));
+
+                $available[$key][] = $index;
+            }
+
+            $resolved = [];
+
+            foreach ($selectedHeaders as $header) {
+                if (! is_string($header) || trim($header) === '') {
+                    throw new InvalidXlsxImportSource(
+                        'Columna institucional invalida.'
+                    );
+                }
+
+                $key = mb_strtoupper(trim(
+                    preg_replace('/\s+/u', ' ', $header) ?? $header
+                ));
+
+                $positions = $available[$key] ?? [];
+
+                if (count($positions) !== 1) {
+                    throw new InvalidXlsxImportSource(
+                        "Columna requerida ausente o duplicada: {$header}."
+                    );
+                }
+
+                $resolved[$positions[0]] = $header;
+            }
+
+            return $resolved;
+        }
+
         while (
             $values !== []
             && $this->isBlankValue(
@@ -259,4 +310,112 @@ class XlsxImportSourceReader
             'El XLSX contiene un tipo de celda no soportado.'
         );
     }
+    // SIGA_ACADEMIA_SHEET_V3
+    public function readAcademicSheetMetadata(string $filePath): ?array
+    {
+        if (!is_file($filePath) || !is_readable($filePath)) {
+            throw new InvalidXlsxImportSource(
+                'No se puede leer el archivo Excel.'
+            );
+        }
+
+        $normalize = static function (mixed $value): string {
+            if (!is_scalar($value)) {
+                return '';
+            }
+
+            $text = mb_strtoupper(trim((string) $value), 'UTF-8');
+
+            $text = strtr($text, [
+                'Á' => 'A', 'É' => 'E', 'Í' => 'I',
+                'Ó' => 'O', 'Ú' => 'U', 'Ü' => 'U',
+            ]);
+
+            return preg_replace('/\s+/u', ' ', $text) ?? $text;
+        };
+
+        $keys = [
+            'CODIGO DE PROGRAMA' => 'codigo_programa',
+            'NOMBRE DE PROGRAMA' => 'nombre_programa',
+            'TIPO DE COHORTE' => 'tipo_cohorte',
+            'NUMERO DE GENERACION' => 'numero_generacion',
+            'ANO OFICIAL DE GENERACION' => 'anio_generacion',
+            'AÑO OFICIAL DE GENERACION' => 'anio_generacion',
+            'SEDE INICIAL (OPCIONAL)' => 'sede_inicial',
+        ];
+
+        $options = new Options;
+        $reader = new Reader($options);
+        $opened = false;
+
+        try {
+            $reader->open($filePath);
+            $opened = true;
+
+            foreach ($reader->getSheetIterator() as $sheet) {
+                if ($normalize($sheet->getName()) !== 'ACADEMIA') {
+                    continue;
+                }
+
+                $metadata = [];
+                $groups = [];
+                $readingGroups = false;
+                $rowCount = 0;
+
+                foreach ($sheet->getRowIterator() as $row) {
+                    if (++$rowCount > 1000) {
+                        throw new InvalidXlsxImportSource(
+                            'La hoja ACADEMIA supera 1000 filas.'
+                        );
+                    }
+
+                    // Solo interesan A y B; las notas y columnas
+                    // adicionales no afectan la importacion.
+                    $cells = $row->toArray();
+                    $label = $normalize($cells[0] ?? null);
+                    $value = trim((string) ($cells[1] ?? ''));
+
+                    if ($label === 'CODIGO GRUPO') {
+                        $readingGroups = true;
+                        continue;
+                    }
+
+                    if ($readingGroups) {
+                        if (str_starts_with($label, 'COMO UTILIZAR')) {
+                            break;
+                        }
+
+                        if ($label === '') {
+                            if ($groups !== []) {
+                                break;
+                            }
+                            continue;
+                        }
+
+                        $groups[] = [
+                            'codigo' => $label,
+                            'especializacion' => $value,
+                        ];
+
+                        continue;
+                    }
+
+                    if (array_key_exists($label, $keys)) {
+                        $metadata[$keys[$label]] = $value;
+                    }
+                }
+
+                $metadata['grupos'] = $groups;
+
+                return $metadata;
+            }
+
+            return null;
+        } finally {
+            if ($opened) {
+                $reader->close();
+            }
+        }
+    }
+
 }
