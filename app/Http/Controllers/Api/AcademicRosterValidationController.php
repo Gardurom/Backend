@@ -92,6 +92,18 @@ final class AcademicRosterValidationController extends Controller
             ],
         ]);
 
+        // SIGA_GUARD_ORGANIZAR_EJEMPLOS_V1
+        // Un archivo identificado como ejemplo solo puede previsualizarse.
+        $originalName = $input['archivo']->getClientOriginalName();
+
+        if (preg_match(
+            '/ejempl|fictici|plantilla|demo|prueba/i',
+            $originalName
+        ) === 1) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'archivo' => 'No se permite registrar organizacion academica desde archivos de ejemplo.',
+            ]);
+        }
         $actor = $request->user();
 
         abort_unless(
@@ -514,13 +526,31 @@ final class AcademicRosterValidationController extends Controller
                 'mimes:xlsx', 'max:5120',
             ],
             'id_cohorte' => ['required', 'uuid'],
-            'modo' => ['sometimes', 'in:PREVISUALIZAR,CONFIRMAR'],
+            'modo' => ['required', 'in:PREVISUALIZAR,CONFIRMAR'],
             'confirmacion' => [
-                'required_unless:modo,PREVISUALIZAR', 'in:INCORPORAR_CADETES_REALES',
+                'required_if:modo,CONFIRMAR', 'prohibited_if:modo,PREVISUALIZAR', 'in:INCORPORAR_CADETES_REALES',
             ],
         ]);
 
         $previewOnly = ($input['modo'] ?? '') === 'PREVISUALIZAR';
+
+        // SIGA_CADETES_CONFIRMED_REAUTH_V1
+        // La previsualizacion no requiere reautenticacion.
+        // La confirmacion real si la requiere.
+        if (! $previewOnly) {
+            $reauthResponse = app(
+                \App\Http\Middleware\EnsureRecentReauthentication::class
+            )->handle(
+                $request,
+                static fn (Request $request) => response()->noContent()
+            );
+
+            if ($reauthResponse->getStatusCode() !== 204) {
+                return response()->json([
+                    'message' => 'Reauthentication required.',
+                ], 423);
+            }
+        }
 
         $actor = $request->user();
 
