@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AcademicRegistryController;
+use App\Http\Controllers\Api\AcademicRosterValidationController;
 use App\Http\Controllers\Api\AcademicOrganizationController;
 use App\Http\Controllers\Api\AcademicOrganizationRegistrationController;
 use App\Http\Controllers\Api\AcademicSitesGroupsRegistrationController;
@@ -14,6 +15,16 @@ Route::prefix('academico')->middleware([
     'siga.session.absolute',
     'siga.access',
 ])->group(function () {
+
+    // H4-IMP-F1-R1: validacion XLSX sin escritura institucional.
+    Route::post(
+        '/importaciones/validar',
+        [AcademicRosterValidationController::class, 'store']
+    )->middleware([
+        'siga.permission:academico.organizacion.ver',
+        'siga.permission:academico.participantes.ver',
+        'siga.permission:personas.ver',
+    ]);
     Route::get('/participantes', [AcademicRegistryController::class, 'participants'])
         ->middleware('siga.permission:academico.participantes.ver');
 
@@ -23,6 +34,8 @@ Route::prefix('academico')->middleware([
 
     Route::post('/participantes', [AcademicRegistryController::class, 'storeParticipant'])
         ->middleware('siga.permission:academico.participantes.registrar');
+
+
 
     Route::get('/formadores', [AcademicRegistryController::class, 'trainers'])
         ->middleware('siga.permission:academico.formadores.ver');
@@ -82,3 +95,27 @@ Route::prefix('academico')->middleware([
             Route::get('/historial-sedes', [AcademicOrganizationController::class, 'siteHistory']);
         });
 });
+
+// SIGA_ORGANIZACION_XLSX_V3
+Route::post('/academico/importaciones/organizar', [
+    \App\Http\Controllers\Api\AcademicRosterValidationController::class,
+    'organizeAcademicExcel',
+])->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.access',
+    'siga.permission:academico.organizacion.registrar',
+    'siga.reauthenticated',
+]);
+
+// SIGA_ALTA_CADETES_XLSX_V1
+Route::post('/academico/importaciones/incorporar', [
+    \App\Http\Controllers\Api\AcademicRosterValidationController::class,
+    'incorporateCadetsExcel',
+])->middleware([
+    'auth:sanctum',
+    'siga.session.absolute',
+    'siga.access',
+    'siga.permission:personas.crear',
+    'siga.permission:academico.participantes.registrar',
+]);
