@@ -153,7 +153,11 @@ final class AcademicRosterValidationController extends Controller
         // SIGA_FORMACION_INICIAL_CONTRATO_V1
         // El lector obtiene el dato directamente del Excel.
         // No se requiere momento_academico en cada fila.
-        foreach ($reader->read($path) as $excelSource) {
+        foreach ($reader->read(
+            $path,
+            ['No.'],
+            ['PERFILACIÓN', 'PERFILACION']
+        ) as $excelSource) {
             $raw = $excelSource->rawData;
 
             $profile = mb_strtoupper(
@@ -663,7 +667,28 @@ final class AcademicRosterValidationController extends Controller
         // No se exponen RFC completos en la respuesta.
         $sourceRows = [];
 
-        foreach ($reader->read($path) as $source) {
+        foreach ($reader->read(
+            $path,
+            [
+                'No.',
+                'ID BECARIO',
+                'RFC',
+                'GENERACIÓN',
+                'GRUPO',
+                'Gpo. No.',
+            ],
+            [
+                'NOMBRES',
+                'NOMBRE',
+                'APELLIDO PATERNO',
+                'APELLIDO MATERNO',
+                'NOMBRE COMPLETO',
+                'PERFILACIÓN',
+                'PERFILACION',
+                'CORREO INSTITUCIONAL',
+                'EMAIL INSTITUCIONAL',
+            ]
+        ) as $source) {
             $number = (int) $source->rowNumber;
 
             if (isset($sourceRows[$number])) {

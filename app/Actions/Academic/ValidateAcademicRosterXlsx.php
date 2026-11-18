@@ -34,7 +34,18 @@ final class ValidateAcademicRosterXlsx
         $groups = [];
         $baseGeneration = null;
 
-        foreach ($this->reader->read($path) as $source) {
+        foreach ($this->reader->read(
+            $path,
+            self::REQUIRED_HEADERS,
+            [
+                'NOMBRES',
+                'APELLIDO PATERNO',
+                'APELLIDO MATERNO',
+                'NOMBRE COMPLETO',
+                'PERFILACIÓN',
+                'PERFILACION',
+            ]
+        ) as $source) {
             if (count($rows) >= 1000) {
                 throw new DomainException(
                     'Se permiten hasta 1000 registros por archivo.'

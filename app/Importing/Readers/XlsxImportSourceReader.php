@@ -18,7 +18,8 @@ class XlsxImportSourceReader
      */
     public function read(
         string $filePath,
-        ?array $selectedHeaders = null
+        ?array $selectedHeaders = null,
+        ?array $optionalHeaders = null
     ): Generator {
         if (
             ! is_file($filePath)
@@ -60,7 +61,8 @@ class XlsxImportSourceReader
                         $headers =
                             $this->normalizeHeaders(
                                 $values,
-                                $selectedHeaders
+                                $selectedHeaders,
+                                $optionalHeaders
                             );
 
                         continue;
@@ -154,7 +156,8 @@ class XlsxImportSourceReader
      */
     private function normalizeHeaders(
         array $values,
-        ?array $selectedHeaders = null
+        ?array $selectedHeaders = null,
+        ?array $optionalHeaders = null
     ): array {
         if ($selectedHeaders !== null) {
             if ($selectedHeaders === []) {
@@ -199,6 +202,38 @@ class XlsxImportSourceReader
                 }
 
                 $resolved[$positions[0]] = $header;
+            }
+
+            // SIGA_XLSX_COLUMNAS_RELEVANTES_V1
+            // Solo se consideran columnas institucionales solicitadas.
+            foreach ($optionalHeaders ?? [] as $header) {
+                if (!is_string($header) || trim($header) === '') {
+                    throw new InvalidXlsxImportSource(
+                        'Columna institucional opcional invalida.'
+                    );
+                }
+
+                $key = mb_strtoupper(trim(
+                    preg_replace('/\s+/u', ' ', $header) ?? $header
+                ));
+
+                $positions = $available[$key] ?? [];
+
+                if (count($positions) > 1) {
+                    throw new InvalidXlsxImportSource(
+                        "Columna institucional duplicada: {$header}."
+                    );
+                }
+
+                if (count($positions) === 1) {
+                    if (isset($resolved[$positions[0]])) {
+                        throw new InvalidXlsxImportSource(
+                            "Columna institucional repetida: {$header}."
+                        );
+                    }
+
+                    $resolved[$positions[0]] = $header;
+                }
             }
 
             return $resolved;

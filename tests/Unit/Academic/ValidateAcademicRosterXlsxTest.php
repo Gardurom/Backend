@@ -6,6 +6,7 @@ namespace Tests\Unit\Academic;
 
 use App\Actions\Academic\ValidateAcademicRosterXlsx;
 use App\Importing\Readers\XlsxImportSourceReader;
+use App\Importing\InvalidXlsxImportSource;
 use DomainException;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
@@ -98,6 +99,26 @@ final class ValidateAcademicRosterXlsxTest extends TestCase
         );
     }
 
+    public function test_ignores_unrelated_headers_when_validating(): void
+    {
+        $matrix = [
+            array_merge(
+                $this->headers(),
+                ['DATO AJENO', 'DATO AJENO', '']
+            ),
+            array_merge(
+                $this->sample(),
+                ['IGNORAR A', 'IGNORAR B', 'IGNORAR C']
+            ),
+        ];
+
+        $result = $this->inspect($matrix);
+
+        self::assertSame(1, $result['summary']['total']);
+        self::assertSame(1, $result['summary']['validos']);
+        self::assertSame(0, $result['summary']['con_errores']);
+        self::assertFalse($result['persistido']);
+    }
     public function test_generation_and_matricula(): void
     {
         $result = $this->inspect([
@@ -207,7 +228,7 @@ final class ValidateAcademicRosterXlsxTest extends TestCase
     public function test_wrong_headers_raise_domain_exception(): void
     {
         $this->expectException(
-            DomainException::class
+            InvalidXlsxImportSource::class
         );
 
         $this->inspect([

@@ -351,6 +351,53 @@ class XlsxImportSourceReaderTest extends TestCase
         );
     }
 
+    public function test_projection_ignores_unrelated_columns(): void
+    {
+        $file = $this->createWorkbook([
+            [
+                'No.',
+                'DATO AJENO',
+                'DATO AJENO',
+                '',
+                'NOMBRES',
+                'RFC',
+            ],
+            [
+                1,
+                'NO USAR',
+                'NO USAR',
+                'NO USAR',
+                'MARIA',
+                'ABCD010101ABC',
+            ],
+        ]);
+
+        $rows = iterator_to_array(
+            (new XlsxImportSourceReader)->read(
+                $file,
+                ['No.', 'RFC'],
+                ['NOMBRES', 'CORREO INSTITUCIONAL']
+            ),
+            false
+        );
+
+        self::assertCount(1, $rows);
+
+        self::assertSame(
+            ['No.', 'RFC', 'NOMBRES'],
+            array_keys($rows[0]->rawData)
+        );
+
+        self::assertSame(
+            'MARIA',
+            $rows[0]->rawData['NOMBRES']
+        );
+
+        self::assertArrayNotHasKey(
+            'DATO AJENO',
+            $rows[0]->rawData
+        );
+    }
     private function createRow(
         array $values
     ): Row {
