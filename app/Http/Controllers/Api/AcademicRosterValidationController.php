@@ -364,13 +364,17 @@ final class AcademicRosterValidationController extends Controller
     }
 
     // SIGA_ALTA_CADETES_XLSX_V1
-    // Registro academico autorizado. No crea Usuarios ni roles.
+    // Registro autorizado de Persona, incorporacion y Usuario pendiente.
+    // Asigna PERFIL_CADETE, pero no crea roles ni habilita accesos.
     public function incorporateCadetsExcel(
         Request $request,
         ValidateAcademicRosterXlsx $validator,
         \App\Importing\Readers\XlsxImportSourceReader $reader,
         \App\Actions\Persona\RegisterPerson $registerPerson,
-        \App\Actions\Academic\RegisterAcademicIdentity $registerAcademic
+        \App\Actions\Academic\RegisterAcademicIdentity $registerAcademic,
+        \App\Actions\User\CreateUser $createUser,
+        \App\Actions\User\ManageUserProfiles $manageProfiles,
+        \App\Actions\Persona\UpdatePerson $updatePerson
     ): JsonResponse {
         // SIGA_PREVIEW_SIN_COHORTE_V1
         // Revisión preliminar sin cohorte, sin altas ni cambios.
@@ -556,6 +560,21 @@ final class AcademicRosterValidationController extends Controller
 
         abort_unless($actor !== null, 401);
 
+        // SIGA_CADETE_USUARIO_ATOMICO_V1
+        // La previsualizacion nunca crea cuentas.
+        if (! $previewOnly) {
+            foreach ([
+                'usuarios.crear',
+                'usuarios.asignar_perfiles',
+            ] as $permission) {
+                abort_unless(
+                    app(\App\Authorization\PermissionResolver::class)
+                        ->allows($actor, $permission),
+                    403
+                );
+            }
+        }
+
         foreach ([
             'personas.crear',
             'academico.participantes.registrar',
@@ -569,7 +588,10 @@ final class AcademicRosterValidationController extends Controller
 
         $file = $input['archivo'];
 
-        if (preg_match(
+        // SIGA_CADETES_EJEMPLOS_PREVIEW_V1
+        // Los archivos de ejemplo solo pueden previsualizarse.
+        // CONFIRMAR conserva obligatoriamente su bloqueo.
+        if (! $previewOnly && preg_match(
             '/ejempl|fictici|plantilla|demo|prueba/i',
             $file->getClientOriginalName()
         ) === 1) {
@@ -730,6 +752,29 @@ final class AcademicRosterValidationController extends Controller
 
             $seenRfc[$rfc] = true;
 
+            // Solo se utiliza el dato institucional relevante.
+            // Las columnas adicionales del Excel no crean atributos.
+            $emailFromExcel = mb_strtolower(trim((string) (
+                $fields['CORREOINSTITUCIONAL']
+                ?? $fields['EMAILINSTITUCIONAL']
+                ?? ''
+            )));
+
+            if (
+                $emailFromExcel !== ''
+                && (
+                    strlen($emailFromExcel) > 255
+                    || filter_var(
+                        $emailFromExcel,
+                        FILTER_VALIDATE_EMAIL
+                    ) === false
+                )
+            ) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'archivo' => "Correo institucional invalido en fila {$number}.",
+                ]);
+            }
+
             $names = $normalize(
                 $fields['NOMBRES']
                 ?? $fields['NOMBRE']
@@ -824,6 +869,7 @@ final class AcademicRosterValidationController extends Controller
             $prepared[] = [
                 'fila_excel' => $number,
                 'rfc' => $rfc,
+                'correo_institucional' => $emailFromExcel,
                 'nombres' => $names,
                 'apellido_paterno' => $paternal ?: null,
                 'apellido_materno' => $maternal ?: null,
@@ -837,7 +883,8 @@ final class AcademicRosterValidationController extends Controller
         return \Illuminate\Support\Facades\DB::transaction(
             function () use (
                 $actor, $academy, $input, $prepared,
-                $normalize, $registerPerson, $registerAcademic, $previewOnly
+                $normalize, $registerPerson, $registerAcademic, $previewOnly,
+                $createUser, $manageProfiles, $updatePerson
             ): JsonResponse {
                 $db = \Illuminate\Support\Facades\DB::connection();
 
@@ -906,6 +953,7 @@ final class AcademicRosterValidationController extends Controller
                     ->keyBy('codigo');
 
                 $resolved = [];
+                $resolvedEmails = [];
 
                 // Resolver TODAS las identidades antes de crear alguna.
                 foreach ($prepared as $row) {
@@ -930,6 +978,7 @@ final class AcademicRosterValidationController extends Controller
                             'nombres',
                             'apellido_paterno',
                             'apellido_materno',
+                            'correo_institucional',
                         ]);
 
                     if ($person !== null) {
@@ -983,10 +1032,143 @@ final class AcademicRosterValidationController extends Controller
                         }
                     }
 
+                    // La cuenta se identifica por Persona, nunca por
+                    // semejanza de nombres o por coincidencia de correo.
+                    $existingUser = $person === null
+                        ? null
+                        : $db->table('system.users')
+                            ->where('id_persona', $person->id_persona)
+                            ->first(['id', 'email']);
+
+                    $excelEmail = $row['correo_institucional'];
+
+                    $personEmail = mb_strtolower(trim(
+                        (string) ($person?->correo_institucional ?? '')
+                    ));
+
+                    $userEmail = mb_strtolower(trim(
+                        (string) ($existingUser?->email ?? '')
+                    ));
+
+                    if (
+                        ($excelEmail !== ''
+                            && $personEmail !== ''
+                            && $excelEmail !== $personEmail)
+                        || ($excelEmail !== ''
+                            && $userEmail !== ''
+                            && $excelEmail !== $userEmail)
+                        || ($personEmail !== ''
+                            && $userEmail !== ''
+                            && $personEmail !== $userEmail)
+                    ) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'archivo' => "Correos institucionales contradictorios en fila {$row['fila_excel']}.",
+                        ]);
+                    }
+
+                    $accountEmail = $userEmail !== ''
+                        ? $userEmail
+                        : ($personEmail !== '' ? $personEmail : $excelEmail);
+
+                    if (
+                        $accountEmail !== ''
+                        && (
+                            strlen($accountEmail) > 255
+                            || filter_var(
+                                $accountEmail,
+                                FILTER_VALIDATE_EMAIL
+                            ) === false
+                        )
+                    ) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'archivo' => "Correo de cuenta invalido en fila {$row['fila_excel']}.",
+                        ]);
+                    }
+
+                    if (! $previewOnly && $accountEmail === '') {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'archivo' => "Falta correo institucional para crear Usuario en fila {$row['fila_excel']}.",
+                        ]);
+                    }
+
+                    if ($accountEmail !== '') {
+                        if (isset($resolvedEmails[$accountEmail])) {
+                            throw \Illuminate\Validation\ValidationException::withMessages([
+                                'archivo' => 'El mismo correo pertenece a varias filas.',
+                            ]);
+                        }
+
+                        $resolvedEmails[$accountEmail] = true;
+
+                        $personConflict = $db->table(
+                            'institutional.persons'
+                        )->whereRaw(
+                            'LOWER(BTRIM(correo_institucional)) = ?',
+                            [$accountEmail]
+                        );
+
+                        if ($person !== null) {
+                            $personConflict->where(
+                                'id_persona',
+                                '<>',
+                                $person->id_persona
+                            );
+                        }
+
+                        if ($personConflict->exists()) {
+                            throw \Illuminate\Validation\ValidationException::withMessages([
+                                'archivo' => 'Correo asociado a otra Persona institucional.',
+                            ]);
+                        }
+
+                        $userConflict = $db->table(
+                            'system.users'
+                        )->whereRaw(
+                            'LOWER(BTRIM(email)) = ?',
+                            [$accountEmail]
+                        );
+
+                        if ($existingUser !== null) {
+                            $userConflict->where(
+                                'id',
+                                '<>',
+                                $existingUser->id
+                            );
+                        }
+
+                        if ($userConflict->exists()) {
+                            throw \Illuminate\Validation\ValidationException::withMessages([
+                                'archivo' => 'Correo asociado a otra cuenta de Usuario.',
+                            ]);
+                        }
+                    }
+
+                    // SIGA_CADETE_CORREO_PERSONA_AUDITADO_V1
+                    // Solo completar un correo institucional ausente.
+                    // Nunca sobrescribir un correo ya registrado.
+                    $updatePersonEmail =
+                        $person !== null
+                        && $personEmail === ''
+                        && $excelEmail !== '';
+
+                    if ($updatePersonEmail && ! $previewOnly) {
+                        abort_unless(
+                            app(\App\Authorization\PermissionResolver::class)
+                                ->allows(
+                                    $actor,
+                                    'personas.actualizar'
+                                ),
+                            403
+                        );
+                    }
+
                     $resolved[] = [
                         'row' => $row,
                         'id_persona' => $person?->id_persona,
                         'id_grupo' => (string) $group->id_grupo,
+                        'email' => $accountEmail,
+                        'user_id' => $existingUser?->id,
+                        'actualizar_correo_persona' => $updatePersonEmail,
                     ];
                 }
 
@@ -1021,11 +1203,63 @@ final class AcademicRosterValidationController extends Controller
                             'filas_procesadas' => count($prepared),
                             'personas_nuevas_previstas' => $newPeople,
                             'personas_reutilizables_previstas' => $existingPeople,
+                            'usuarios_nuevos_previstos' => count(array_filter(
+                                $resolved,
+                                static fn (array $item): bool =>
+                                    $item['user_id'] === null
+                                    && $item['email'] !== ''
+                            )),
+                            'filas_sin_correo_para_cuenta' => count(array_filter(
+                                $resolved,
+                                static fn (array $item): bool =>
+                                    $item['user_id'] === null
+                                    && $item['email'] === ''
+                            )),
+                            'personas_correo_por_actualizar' => count(array_filter(
+                                $resolved,
+                                static fn (array $item): bool =>
+                                    $item['actualizar_correo_persona']
+                            )),
                             'filas' => $rowResults,
                             'personas_creadas' => 0,
                             'usuarios_creados' => 0,
                             'incorporaciones_creadas' => 0,
                         ],
+                    ]);
+                }
+
+                // SIGA_CADETE_CONFIRMACION_COMPLETA_V1
+                // Comprobar todas las cuentas antes de crear
+                // cualquier Persona o incorporacion.
+                $accountsWithoutEmail = 0;
+
+                foreach ($resolved as $item) {
+                    $existingUser = $item['user_id'] ?? null;
+                    $accountEmail = trim(
+                        (string) ($item['email'] ?? '')
+                    );
+
+                    if (
+                        $existingUser === null
+                        && (
+                            $accountEmail === ''
+                            || filter_var(
+                                $accountEmail,
+                                FILTER_VALIDATE_EMAIL
+                            ) === false
+                        )
+                    ) {
+                        $accountsWithoutEmail++;
+                    }
+                }
+
+                if ($accountsWithoutEmail > 0) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'archivo' =>
+                            'Incorporacion integral bloqueada: '
+                            . $accountsWithoutEmail
+                            . ' registro(s) no tienen correo valido '
+                            . 'ni Usuario institucional reutilizable.',
                     ]);
                 }
 
@@ -1045,6 +1279,8 @@ final class AcademicRosterValidationController extends Controller
                                 'nombres' => $row['nombres'],
                                 'apellido_paterno' => $row['apellido_paterno'],
                                 'apellido_materno' => $row['apellido_materno'],
+                                'correo_institucional' =>
+                                    $row['correo_institucional'] ?: null,
                             ],
                             'MASIVO'
                         );
@@ -1069,6 +1305,100 @@ final class AcademicRosterValidationController extends Controller
                         $confirmation
                     );
 
+                // El perfil identifica el contexto de trabajo.
+                // No constituye un rol ni concede permisos.
+                $cadetProfileId = $db->table('system.profiles as p')
+                    ->join(
+                        'system.profile_groups as g',
+                        'g.id',
+                        '=',
+                        'p.profile_group_id'
+                    )
+                    ->where('p.code', 'PERFIL_CADETE')
+                    ->where('g.code', 'GRUPO_ACADEMICO')
+                    ->value('p.id');
+
+                if ($cadetProfileId === null) {
+                    throw new \RuntimeException(
+                        'No existe el perfil institucional de cadete.'
+                    );
+                }
+
+                $usersCreated = 0;
+                $usersReused = 0;
+                $profilesAssigned = 0;
+                $personEmailsUpdated = 0;
+
+                foreach ($resolved as $index => $item) {
+                    $userId = $item['user_id'];
+
+                    if ($item['actualizar_correo_persona']) {
+                        $personId = (string)
+                            $confirmation[$index]['id_persona'];
+
+                        // Evitar sobrescribir cambios concurrentes.
+                        $currentEmail = $db->table(
+                            'institutional.persons'
+                        )
+                            ->where('id_persona', $personId)
+                            ->lockForUpdate()
+                            ->value('correo_institucional');
+
+                        if (
+                            trim((string) $currentEmail) !== ''
+                        ) {
+                            throw \Illuminate\Validation\ValidationException::withMessages([
+                                'archivo' => 'El correo institucional de una Persona cambio durante la importacion.',
+                            ]);
+                        }
+
+                        // UpdatePerson guarda la actividad
+                        // dentro de la transaccion institucional.
+                        $updatePerson->execute(
+                            (int) $actor->getKey(),
+                            $personId,
+                            [
+                                'correo_institucional' =>
+                                    (string) $item['email'],
+                            ]
+                        );
+
+                        $personEmailsUpdated++;
+                    }
+
+                    if ($userId === null) {
+                        // Contraseña aleatoria no entregada ni registrada
+                        // en respuesta, archivo, bitacora o consola.
+                        // El modelo User almacena su hash.
+                        $newUser = $createUser->execute(
+                            (string) $confirmation[$index]['id_persona'],
+                            (string) $item['email'],
+                            bin2hex(random_bytes(32)),
+                            (int) $actor->getKey()
+                        );
+
+                        if ($newUser->access_status !== 'PENDIENTE') {
+                            throw new \RuntimeException(
+                                'La cuenta nueva debe quedar PENDIENTE.'
+                            );
+                        }
+
+                        $userId = (int) $newUser->getKey();
+                        $usersCreated++;
+                    } else {
+                        $userId = (int) $userId;
+                        $usersReused++;
+                    }
+
+                    if ($manageProfiles->assign(
+                        $userId,
+                        (int) $cadetProfileId,
+                        (int) $actor->getKey()
+                    )) {
+                        $profilesAssigned++;
+                    }
+                }
+
                 return response()->json([
                     'data' => [
                         'id_cohorte' => $cohortId,
@@ -1076,7 +1406,11 @@ final class AcademicRosterValidationController extends Controller
                         'personas_creadas' => $created,
                         'personas_reutilizadas' => $reused,
                         'incorporaciones' => $incorporations,
-                        'usuarios_creados' => 0,
+                        'usuarios_creados' => $usersCreated,
+                        'usuarios_reutilizados' => $usersReused,
+                        'perfiles_asignados' => $profilesAssigned,
+                        'personas_correo_actualizado' => $personEmailsUpdated,
+                        'credenciales_entregadas' => false,
                         'roles_asignados' => 0,
                     ],
                 ], 201);

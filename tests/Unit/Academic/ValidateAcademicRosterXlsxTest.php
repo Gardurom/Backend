@@ -143,12 +143,12 @@ final class ValidateAcademicRosterXlsxTest extends TestCase
 
         self::assertSame(
             1,
-            $result['summary']['con_errores']
+            $result['summary']['con_observaciones']
         );
 
         self::assertContains(
             'RFC requiere revision de formato',
-            $result['filas'][0]['errores']
+            $result['filas'][0]['advertencias']
         );
     }
 
